@@ -3,8 +3,6 @@
 <head>
     <title>FastQ Merge</title>
     <link rel="stylesheet" type="text/css" href="styles.css">
-
-    <!-- Include your CSS file or styles here -->
 </head>
 <body>
 
@@ -12,14 +10,12 @@
     <h1>FastQ Merge</h1>
     <button id="selectFolder">Select Folder</button>
     <p id="folderPath"></p>
+    <input type="text" id="mergeName" placeholder="Enter merge name">
     <button id="beginMerge" style="display:none;">Begin Merge</button>
     <pre id="mergeOutput"></pre> <!-- Terminal-like output box -->
 </div>
 
-
-<script>
-    // Include your renderer script here, handling folder selection and IPC communication
-</script>
+<script src="renderer.js"></script> <!-- Update with your actual script file name -->
 
 </body>
 </html>

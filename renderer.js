@@ -32,9 +32,10 @@ function setupFastQMergePage() {
     const selectFolderButton = document.getElementById('selectFolder');
     const beginMergeButton = document.getElementById('beginMerge');
     const folderPathText = document.getElementById('folderPath');
+    const mergeNameInput = document.getElementById('mergeName'); // New input for merge name
     const mergeOutputElement = document.getElementById('mergeOutput');
 
-    if (selectFolderButton && beginMergeButton && folderPathText) {
+    if (selectFolderButton && beginMergeButton && folderPathText && mergeNameInput) {
         selectFolderButton.addEventListener('click', () => {
             ipcRenderer.invoke('select-folder').then(folderPath => {
                 if (folderPath) {
@@ -46,10 +47,11 @@ function setupFastQMergePage() {
 
         beginMergeButton.addEventListener('click', () => {
             const folderPath = folderPathText.textContent.replace('Selected Folder: ', '');
-            if (folderPath) {
-                ipcRenderer.send('run-merge-command', folderPath);
+            const mergeName = mergeNameInput.value; // Get the merge name from the input
+            if (folderPath && mergeName) {
+                ipcRenderer.send('run-merge-command', folderPath, mergeName);
             } else {
-                console.log("No folder selected");
+                console.log("No folder selected or merge name provided");
             }
         });
     }
@@ -66,12 +68,11 @@ function setupFastQMergePage() {
         }
     });
 }
-
 document.addEventListener('DOMContentLoaded', () => {
     document.querySelectorAll('.sidebar a').forEach(link => {
         link.addEventListener('click', function(event) {
             event.preventDefault();
-            const page = this.getAttribute('href').substring(1);
+            const page = this.getAttribute('hr  ef').substring(1);
             fetch(page + '.html')
                 .then(response => response.text())
                 .then(data => {
