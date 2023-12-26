@@ -1,0 +1,29 @@
+{
+  "name": "CGELabs",
+  "version": "1.0.0",
+  "description": "",
+  "main": "main.js",
+  "scripts": {
+    "start": "electron .",
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/MBHallgren/CGELabs.git"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/MBHallgren/CGELabs/issues"
+  },
+  "homepage": "https://github.com/MBHallgren/CGELabs#readme",
+  "devDependencies": {
+    "electron": "^28.1.0",
+    "electron-installer-debian": "^3.2.0",
+    "electron-packager": "^17.1.2"
+  },
+  "dependencies": {
+    "requirejs": "^2.3.6"
+  }
+}
