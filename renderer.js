@@ -1,11 +1,11 @@
 const { ipcRenderer } = require('electron');
 
-
 function scrollToBottom(element) {
     requestAnimationFrame(() => {
         element.scrollTop = element.scrollHeight;
     });
 }
+
 function setupBacteriaPage() {
     const runButton = document.getElementById('runCommand');
     if (runButton) {
@@ -23,41 +23,47 @@ function setupBacteriaPage() {
                     outputElement.textContent += 'STDERR: ' + stderr + '\n';
                 }
                 scrollToBottom(outputElement);
-
             }
         });
     }
 }
 
 function setupFastQMergePage() {
-    document.getElementById('selectFolder').addEventListener('click', () => {
-        ipcRenderer.invoke('select-folder').then(folderPath => {
+    const selectFolderButton = document.getElementById('selectFolder');
+    const beginMergeButton = document.getElementById('beginMerge');
+    const folderPathText = document.getElementById('folderPath');
+    const mergeOutputElement = document.getElementById('mergeOutput');
+
+    if (selectFolderButton && beginMergeButton && folderPathText) {
+        selectFolderButton.addEventListener('click', () => {
+            ipcRenderer.invoke('select-folder').then(folderPath => {
+                if (folderPath) {
+                    folderPathText.textContent = `Selected Folder: ${folderPath}`;
+                    beginMergeButton.style.display = 'block'; // Show the button
+                }
+            });
+        });
+
+        beginMergeButton.addEventListener('click', () => {
+            const folderPath = folderPathText.textContent.replace('Selected Folder: ', '');
             if (folderPath) {
-                document.getElementById('folderPath').textContent = `Selected Folder: ${folderPath}`;
-                document.getElementById('beginMerge').style.display = 'block'; // Show the button
+                ipcRenderer.send('run-merge-command', folderPath);
+            } else {
+                console.log("No folder selected");
             }
         });
-    });
-
-    document.getElementById('beginMerge').addEventListener('click', () => {
-        const folderPath = document.getElementById('folderPath').textContent.replace('Selected Folder: ', '');
-        if (folderPath) {
-            ipcRenderer.send('run-merge-command', folderPath);
-        } else {
-            console.log("No folder selected");
-        }
-        // Here you will later trigger the actual merge command
-    });
+    }
 
     ipcRenderer.on('merge-command-output', (event, data) => {
-        const outputElement = document.getElementById('mergeOutput');
-        if (data.stdout) {
-            outputElement.textContent += data.stdout;
+        if (mergeOutputElement) {
+            if (data.stdout) {
+                mergeOutputElement.textContent += data.stdout;
+            }
+            if (data.stderr) {
+                mergeOutputElement.textContent += data.stderr;
+            }
+            scrollToBottom(mergeOutputElement);
         }
-        if (data.stderr) {
-            outputElement.textContent += data.stderr;
-        }
-        scrollToBottom(outputElement);
     });
 }
 
@@ -79,25 +85,4 @@ document.addEventListener('DOMContentLoaded', () => {
                 });
         });
     });
-});
-
-
-
-document.getElementById('selectFolder').addEventListener('click', () => {
-    ipcRenderer.invoke('select-folder').then(folderPath => {
-        if (folderPath) {
-            ipcRenderer.send('run-merge-command', folderPath);
-        }
-    });
-});
-
-ipcRenderer.on('merge-command-output', (event, data) => {
-    const outputElement = document.getElementById('mergeOutput');
-    if (data.stdout) {
-        outputElement.textContent += data.stdout;
-    }
-    if (data.stderr) {
-        outputElement.textContent += data.stderr;
-    }
-    // Implement auto-scroll here if needed
 });

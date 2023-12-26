@@ -3,17 +3,22 @@ const { app, BrowserWindow, ipcMain } = require('electron');
 const path = require('path');
 const { spawn } = require('child_process');
 const { dialog } = require('electron');
+const fs = require('fs');
+
 
 
 function createWindow() {
+    const iconPath = path.join(__dirname, 'build/icons/logo_256.png');
+
+
     const win = new BrowserWindow({
         width: 800,
         height: 600,
         webPreferences: {
             nodeIntegration: true,
             contextIsolation: false,
-            icon: __dirname + 'cge_labs_logo.png',
-        }
+        },
+        icon: iconPath, // Set the icon using the correct path
     });
 
     win.loadFile('index.html');
