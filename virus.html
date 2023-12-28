@@ -1,5 +1,21 @@
-<!-- bacteria.html -->
-<div>
-    <h1>Virus</h1>
-    <p>This is the Virus page.</p>
-</div>
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Virus Analysis</title>
+    <link rel="stylesheet" type="text/css" href="styles.css">
+    <!-- Include any additional head elements here -->
+</head>
+<body>
+    <div>
+        <h1>Virus Analysis</h1>
+        <p>Select a FastQ file and enter the experiment name to begin virus analysis.</p>
+        <input type="file" id="virusFileInput" accept=".fastq,.fastq.gz,.fq,.fq.gz"><br><br>
+        <input type="text" id="virusExperimentName" placeholder="Enter experiment name"><br><br>
+        <button id="beginVirusAnalysis">Begin Analysis</button>
+        <pre id="virusOutput"></pre>
+        <div id="virusButtonContainer"></div>
+    </div>
+    <!-- Include any additional scripts or HTML content -->
+<script src="renderer.js"></script>
+</body>
+</html>

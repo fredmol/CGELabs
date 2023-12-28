@@ -6,28 +6,177 @@ function scrollToBottom(element) {
     });
 }
 
-function setupBacteriaPage() {
-    const runButton = document.getElementById('runCommand');
-    if (runButton) {
-        runButton.addEventListener('click', () => {
-            ipcRenderer.send('run-command', 'bash /Users/malhal/dev/CGELabs/t.sh');
+function setupVirusPage() {
+    const beginAnalysisButton = document.getElementById('beginVirusAnalysis');
+    const fileInput = document.getElementById('virusFileInput');
+    const experimentNameInput = document.getElementById('virusExperimentName');
+    const outputElement = document.getElementById('virusOutput');
+
+    if (beginAnalysisButton) {
+        beginAnalysisButton.addEventListener('click', () => {
+            const filePath = fileInput.files[0].path;
+            const experimentName = experimentNameInput.value;
+
+            if (filePath && experimentName) {
+                ipcRenderer.send('run-virus-command', filePath, experimentName);
+            } else {
+                console.log("File or experiment name not provided");
+            }
         });
 
-        ipcRenderer.on('command-output', (event, { stdout, stderr }) => {
-            const outputElement = document.getElementById('output');
+        ipcRenderer.on('virus-command-output', (event, { stdout, stderr }) => {
             if (outputElement) {
                 if (stdout) {
-                    outputElement.textContent += 'STDOUT: ' + stdout + '\n';
+                    outputElement.textContent += stdout + '\n';
                 }
                 if (stderr) {
-                    outputElement.textContent += 'STDERR: ' + stderr + '\n';
+                    outputElement.textContent += stderr + '\n';
                 }
                 scrollToBottom(outputElement);
             }
         });
+
+        ipcRenderer.on('virus-complete-success', () => {
+            const buttonContainer = document.getElementById('virusButtonContainer');
+            if (!document.getElementById('viewVirusResults') && buttonContainer) {
+                const resultsButton = document.createElement('button');
+                resultsButton.textContent = 'View Virus Results';
+                resultsButton.id = 'viewVirusResults';
+                resultsButton.addEventListener('click', () => {
+                    fetch('results.html')
+                        .then(response => response.text())
+                        .then(html => {
+                            const mainContent = document.querySelector('.main-content');
+                            mainContent.innerHTML = html;
+                        })
+                        .catch(error => console.error('Failed to load virus results page:', error));
+                });
+
+                buttonContainer.appendChild(resultsButton);
+            }
+        });
+
+        ipcRenderer.on('virus-complete-failure', (event, errorMessage) => {
+            console.error(errorMessage);
+        });
     }
 }
 
+function setupMetagenomicsPage() {
+    const beginAnalysisButton = document.getElementById('beginMetagenomicsAnalysis');
+    const fileInput = document.getElementById('metagenomicsFileInput');
+    const experimentNameInput = document.getElementById('metagenomicsExperimentName');
+    const outputElement = document.getElementById('metagenomicsOutput');
+
+    if (beginAnalysisButton) {
+        beginAnalysisButton.addEventListener('click', () => {
+            const filePath = fileInput.files[0].path;
+            const experimentName = experimentNameInput.value;
+
+            if (filePath && experimentName) {
+                ipcRenderer.send('run-metagenomics-command', filePath, experimentName);
+            } else {
+                console.log("File or experiment name not provided");
+            }
+        });
+
+        ipcRenderer.on('metagenomics-command-output', (event, { stdout, stderr }) => {
+            if (outputElement) {
+                if (stdout) {
+                    outputElement.textContent += stdout + '\n';
+                }
+                if (stderr) {
+                    outputElement.textContent += stderr + '\n';
+                }
+                scrollToBottom(outputElement);
+            }
+        });
+
+        ipcRenderer.on('metagenomics-complete-success', () => {
+            const buttonContainer = document.getElementById('metagenomicsButtonContainer');
+            if (!document.getElementById('viewMetagenomicsResults') && buttonContainer) {
+                const resultsButton = document.createElement('button');
+                resultsButton.textContent = 'View Metagenomics Results';
+                resultsButton.id = 'viewMetagenomicsResults';
+                resultsButton.addEventListener('click', () => {
+                    fetch('results.html')
+                        .then(response => response.text())
+                        .then(html => {
+                            const mainContent = document.querySelector('.main-content');
+                            mainContent.innerHTML = html;
+                        })
+                        .catch(error => console.error('Failed to load metagenomics results page:', error));
+                });
+
+                buttonContainer.appendChild(resultsButton);
+            }
+        });
+
+        ipcRenderer.on('metagenomics-complete-failure', (event, errorMessage) => {
+            console.error(errorMessage);
+        });
+    }
+}
+
+
+function setupBacteriaPage() {
+    const beginAnalysisButton = document.getElementById('beginAnalysis');
+    const fileInput = document.getElementById('fileInput');
+    const experimentNameInput = document.getElementById('experimentName');
+    const outputElement = document.getElementById('output');
+
+    if (beginAnalysisButton) {
+        beginAnalysisButton.addEventListener('click', () => {
+            const filePath = fileInput.files[0].path;
+            const experimentName = experimentNameInput.value;
+
+            if (filePath && experimentName) {
+                ipcRenderer.send('run-isolate-command', filePath, experimentName);
+            } else {
+                console.log("File or experiment name not provided");
+            }
+        });
+
+        ipcRenderer.on('isolate-command-output', (event, { stdout, stderr }) => {
+            if (outputElement) {
+                if (stdout) {
+                    outputElement.textContent += stdout + '\n';
+                }
+                if (stderr) {
+                    outputElement.textContent += stderr + '\n';
+                }
+                scrollToBottom(outputElement);
+            }
+        });
+
+        ipcRenderer.on('isolate-complete-success', () => {
+            const buttonContainer = document.getElementById('buttonContainer');
+            if (!document.getElementById('viewResults') && buttonContainer) {
+                const resultsButton = document.createElement('button');
+                resultsButton.textContent = 'View Results';
+                resultsButton.id = 'viewResults';
+                resultsButton.addEventListener('click', () => {
+                fetch('results.html')
+                    .then(response => response.text())
+                    .then(html => {
+                            const mainContent = document.querySelector('.main-content');
+                            mainContent.innerHTML = html;
+                            // Call any initialization functions for results.html here, if needed
+                        })
+                        .catch(error => console.error('Failed to load results page:', error));
+                });
+
+
+                buttonContainer.appendChild(resultsButton);
+                }
+        });
+
+        ipcRenderer.on('isolate-complete-failure', (event, errorMessage) => {
+            console.error(errorMessage);
+            // Optionally, display the error message to the user
+        });
+    }
+}
 function setupFastQMergePage() {
     const selectFolderButton = document.getElementById('selectFolder');
     const beginMergeButton = document.getElementById('beginMerge');
@@ -72,18 +221,27 @@ document.addEventListener('DOMContentLoaded', () => {
     document.querySelectorAll('.sidebar a').forEach(link => {
         link.addEventListener('click', function(event) {
             event.preventDefault();
-            const page = this.getAttribute('hr  ef').substring(1);
-            fetch(page + '.html')
-                .then(response => response.text())
-                .then(data => {
-                    const mainContent = document.querySelector('.main-content');
-                    mainContent.innerHTML = data;
-                    if (page === 'bacteria') {
-                        setupBacteriaPage();
-                    } else if (page === 'fastqmerge') {
-                        setupFastQMergePage();
-                    }
-                });
+
+            // Corrected line: Ensure href attribute is safely accessed
+            const hrefAttribute = this.getAttribute('href');
+            if (hrefAttribute) {
+                const page = hrefAttribute.substring(1);
+                fetch(page + '.html')
+                    .then(response => response.text())
+                    .then(data => {
+                        const mainContent = document.querySelector('.main-content');
+                        mainContent.innerHTML = data;
+                        if (page === 'bacteria') {
+                            setupBacteriaPage();
+                        } else if (page === 'fastqmerge') {
+                            setupFastQMergePage();
+                        } else if (page === 'virus') {
+                            setupVirusPage();
+                        } else if (page === 'metagenomics') {
+                            setupMetagenomicsPage();
+                        }
+                    });
+            }
         });
     });
 });

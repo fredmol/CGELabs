@@ -9,8 +9,8 @@ function createWindow() {
     const iconPath = path.join(__dirname, 'build/icons/logo_256.png');
 
     const win = new BrowserWindow({
-        width: 800,
-        height: 600,
+        width: 1200,
+        height: 900,
         webPreferences: {
             nodeIntegration: true,
             contextIsolation: false,
@@ -33,7 +33,8 @@ ipcMain.handle('select-folder', async (event) => {
 
 ipcMain.on('run-merge-command', (event, folderPath, mergeName) => {
     const homeDirectory = os.homedir();
-    const cgeutilPath = `${homeDirectory}/miniconda3/envs/cge_env/bin/cgeutil`;
+    const cgeutilPath = `${homeDirectory}/anaconda3/envs/cge_env/bin/cgeutil`;
+    console.log(`Running merge command with folderPath: ${folderPath} and mergeName: ${mergeName}`)
     const args = ['merge', '--dir_path', folderPath, '--name', mergeName];
 
     const process = spawn(cgeutilPath, args);
@@ -48,5 +49,91 @@ ipcMain.on('run-merge-command', (event, folderPath, mergeName) => {
 
     process.on('close', (code) => {
         event.sender.send('merge-complete', `Process exited with code ${code}`);
+    });
+});
+
+ipcMain.on('run-isolate-command', (event, filePath, experimentName) => {
+    const homeDirectory = os.homedir();
+    const condaPath = `${homeDirectory}/anaconda3/bin/conda`; // Path to conda executable
+    const scriptPath = `${homeDirectory}/anaconda3/envs/cge_env/bin/cgeisolate`; // Path to your script
+    const pythonPath = `${homeDirectory}/anaconda3/envs/cge_env/bin/python3`; // Path to Python in cge_env
+
+    console.log(`Running isolate command with filePath: ${filePath} and experimentName: ${experimentName}`);
+
+    // Preparing arguments for conda run
+    const args = ['run', '--live-stream', '-n', 'cge_env', pythonPath, scriptPath, '-i', filePath, '-name', experimentName];
+
+    const process = spawn(condaPath, args);
+
+    process.stdout.on('data', (data) => {
+        event.sender.send('isolate-command-output', { stdout: data.toString() });
+    });
+
+    process.stderr.on('data', (data) => {
+        event.sender.send('isolate-command-output', { stderr: data.toString() });
+    });
+
+    process.on('close', (code) => {
+        if (code === 0) {
+            event.sender.send('isolate-complete-success');
+        } else {
+            event.sender.send('isolate-complete-failure', `Process exited with code ${code}`);
+        }
+    });
+});
+
+// Handler for virus analysis
+ipcMain.on('run-virus-command', (event, filePath, experimentName) => {
+    const homeDirectory = os.homedir();
+    const condaPath = `${homeDirectory}/anaconda3/bin/conda`;
+    const scriptPath = `${homeDirectory}/anaconda3/envs/cge_env/bin/cgevirus`; // Adjust script path
+    const pythonPath = `${homeDirectory}/anaconda3/envs/cge_env/bin/python3`;
+
+    const args = ['run', '--live-stream', '-n', 'cge_env', pythonPath, scriptPath, '-i', filePath, '-name', experimentName];
+
+    const process = spawn(condaPath, args);
+
+    process.stdout.on('data', (data) => {
+        event.sender.send('virus-command-output', { stdout: data.toString() });
+    });
+
+    process.stderr.on('data', (data) => {
+        event.sender.send('virus-command-output', { stderr: data.toString() });
+    });
+
+    process.on('close', (code) => {
+        if (code === 0) {
+            event.sender.send('virus-complete-success');
+        } else {
+            event.sender.send('virus-complete-failure', `Process exited with code ${code}`);
+        }
+    });
+});
+
+// Handler for metagenomics analysis
+ipcMain.on('run-metagenomics-command', (event, filePath, experimentName) => {
+    const homeDirectory = os.homedir();
+    const condaPath = `${homeDirectory}/anaconda3/bin/conda`;
+    const scriptPath = `${homeDirectory}/anaconda3/envs/cge_env/bin/cgemetagenomics`; // Adjust script path
+    const pythonPath = `${homeDirectory}/anaconda3/envs/cge_env/bin/python3`;
+
+    const args = ['run', '--live-stream', '-n', 'cge_env', pythonPath, scriptPath, '-i', filePath, '-name', experimentName];
+
+    const process = spawn(condaPath, args);
+
+    process.stdout.on('data', (data) => {
+        event.sender.send('metagenomics-command-output', { stdout: data.toString() });
+    });
+
+    process.stderr.on('data', (data) => {
+        event.sender.send('metagenomics-command-output', { stderr: data.toString() });
+    });
+
+    process.on('close', (code) => {
+        if (code === 0) {
+            event.sender.send('metagenomics-complete-success');
+        } else {
+            event.sender.send('metagenomics-complete-failure', `Process exited with code ${code}`);
+        }
     });
 });

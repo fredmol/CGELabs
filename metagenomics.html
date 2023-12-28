@@ -1,5 +1,21 @@
-<!-- bacteria.html -->
-<div>
-    <h1>Metagenomics</h1>
-    <p>This is the metagenomics page.</p>
-</div>
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Metagenomics Analysis</title>
+    <link rel="stylesheet" type="text/css" href="styles.css">
+    <!-- Include any additional head elements here -->
+</head>
+<body>
+    <div>
+        <h1>Metagenomics Analysis</h1>
+        <p>Select a FastQ file and enter the experiment name to begin metagenomics analysis.</p>
+        <input type="file" id="metagenomicsFileInput" accept=".fastq,.fastq.gz,.fq,.fq.gz"><br><br>
+        <input type="text" id="metagenomicsExperimentName" placeholder="Enter experiment name"><br><br>
+        <button id="beginMetagenomicsAnalysis">Begin Analysis</button>
+        <pre id="metagenomicsOutput"></pre>
+        <div id="metagenomicsButtonContainer"></div>
+    </div>
+    <!-- Include any additional scripts or HTML content -->
+<script src="renderer.js"></script>
+</body>
+</html>

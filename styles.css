@@ -1,3 +1,35 @@
+#metagenomicsOutput, #virusOutput, #bacteriaOutput {
+    background-color: black;
+    color: white;
+    font-family: 'Courier New', monospace;
+    padding: 10px;
+    overflow-y: auto;
+    height: 300px;  /* Adjust the height as needed */
+    margin-top: 10px;
+}
+
+/* Common styles for all buttons */
+button {
+    background-color: #4CAF50; /* Green */
+    border: none;
+    color: white;
+    padding: 10px 20px;
+    text-align: center;
+    text-decoration: none;
+    display: inline-block;
+    font-size: 16px;
+    margin: 4px 2px;
+    cursor: pointer;
+}
+/* Additional or override styles as needed */
+
+
+#viewResults {
+    display: block; /* Ensure the button is a block element */
+    margin-top: 20px; /* Space above the button */
+    /* Other styles as needed */
+}
+
 #output {
     background-color: black;
     color: white;
@@ -6,6 +38,7 @@
     height: 300px; /* Adjust as needed */
     padding: 10px;
     border: 1px solid #ccc;
+    margin-bottom: 20px; /* Add space below the terminal box */
 }
 
 #mergeOutput {
