@@ -43,6 +43,7 @@ Execute the script:
 4. Initiate the experiment and monitor the real-time output in the integrated terminal window. Upon completion, the results will be accessible through the app's results page.
 
 ## Development Setup
+This section should only be used by developers who wish to contribute to the development of CGELabs. The following instructions are for building the application from source.
 ### Prerequisites
 Ensure the installation of the following dependencies:
 `sudo apt install nodejs npm`
