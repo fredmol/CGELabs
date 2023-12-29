@@ -67,5 +67,8 @@ This command installs all necessary dependencies.
 `npm run dist`
 The built application package will be located in `build/CGELabs-<version>.deb`.
 
+### Future Development
+If new features are developed and to be released, the developer should build the application using the build process described above. The new .deb file should then be uploaded to the CGE server under /home/www/htdocs/services/CGELabs/ .
+
 
 
