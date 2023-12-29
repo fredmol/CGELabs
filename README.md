@@ -23,12 +23,11 @@ If the environment is already installed it can be updated using:
 `wget https://cge.cbs.dtu.dk/services/CGELabs/setup.py`
 4. Execute the setup script:
 `sudo python3 setup.py`
-5Download the cge_db from the CGE server:
+5. Download the cge_db from the CGE server:
 `wget https://cge.cbs.dtu.dk/services/CGELabs/cge_db.tar.gz`
-
-5. Extract the cge_db:
+6. Extract the cge_db:
 `tar -xvzf cge_db.tar.gz`
-6. Move the cge_db to the CGELabs directory:
+7. Move the cge_db to the CGELabs directory:
 `mv cge_db /var/lib/cge/database/cge_db`
 
 ## Dependencny check
