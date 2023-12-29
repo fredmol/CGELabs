@@ -4,7 +4,8 @@ Welcome to the official repository for CGELabs. CGELabs is a sophisticated Elect
 ## Installation Instructions
 1. Visit the GitHub page to identify the latest release version of CGELabs.
 2. Use the wget command to download the appropriate .deb file from the CGE server, ensuring to replace the version number with the latest one. For example:
-3. Install the downloaded package using the dpkg tool:
+`wget https://cge.cbs.dtu.dk/services/CGELabs/CGELabs-1.0.0.deb`
+4. Install the downloaded package using the dpkg tool:
 `sudo dpkg -i CGELabs-1.0.0.deb`
 **Note:** This step installs only the front-end of CGELabs, which is not functional standalone. To fully utilize CGELabs, you must separately install the necessary bioinformatic tools and download the CGE_db. Detailed installation guidelines are available in the [Great-Life project repository](https://github.com/genomicepidemiology/great-life).
 
