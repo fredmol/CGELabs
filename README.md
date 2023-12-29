@@ -39,7 +39,7 @@ Execute the script:
 ## Usage Guide
 1. Launch CGELabs from the applications menu.
 2. Choose the desired workflow.
-3. Input all required parameters. This typically includes a unique experiment name and the selection of a .fastq file for analysis. All the analytical tools take a single .fastq file per analysis. If you have fresh Oxford Nanopore Sequencing output which is comprised on many, smaller files, these files can be merged using the in-app merge function.
+3. Input all required parameters. This typically includes a unique experiment name and the selection of a .fastq file for analysis. All the analytical tools take a single .fastq file per analysis. If you have fresh Oxford Nanopore Sequencing output which is comprised on many, smaller files, these files can be merged using the in-app merge function. All output results will be located in /var/lib/cge/results/<experiment_name>.
 4. Initiate the experiment and monitor the real-time output in the integrated terminal window. Upon completion, the results will be accessible through the app's results page.
 
 ## Development Setup
