@@ -1,8 +1,39 @@
 const { ipcRenderer } = require('electron');
+const fs = require('fs');
+const resultsDirectory = '/var/lib/cge/results';
 
 function scrollToBottom(element) {
     requestAnimationFrame(() => {
         element.scrollTop = element.scrollHeight;
+    });
+}
+
+// Modify this function to check for the report.txt file
+function setupResultsPage() {
+    console.log('Setting up results page');
+    ipcRenderer.invoke('get-results').then(resultFolders => {
+        const tableBody = document.getElementById('resultsTable').querySelector('tbody');
+        tableBody.innerHTML = ''; // Clear existing rows
+        resultFolders.forEach(folderInfo => {
+            const row = tableBody.insertRow();
+            const cellName = row.insertCell();
+            const cellLink = row.insertCell();
+            cellName.textContent = folderInfo.name;
+
+            if (folderInfo.reportExists) {
+                const link = document.createElement('a');
+                link.href = '#';
+                link.textContent = 'Open Report';
+                link.addEventListener('click', (event) => {
+                    event.preventDefault();
+                    // Handle opening of report.txt
+                    ipcRenderer.send('open-file', `${resultsDirectory}/${folderInfo.name}/report.txt`);
+                });
+                cellLink.appendChild(link);
+            } else {
+                cellLink.textContent = 'No report available. Likely the analysis failed or was stopped prematurely.';
+            }
+        });
     });
 }
 
@@ -239,6 +270,8 @@ document.addEventListener('DOMContentLoaded', () => {
                             setupVirusPage();
                         } else if (page === 'metagenomics') {
                             setupMetagenomicsPage();
+                        }  else if (page === 'results') {
+                            setupResultsPage();
                         }
                     });
             }

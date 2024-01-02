@@ -4,6 +4,11 @@ const path = require('path');
 const { spawn } = require('child_process');
 const { dialog } = require('electron');
 const os = require('os');
+const fs = require('fs');
+const resultsDirectory = '/var/lib/cge/results';
+const { shell } = require('electron');
+
+
 
 function createWindow() {
     const iconPath = path.join(__dirname, 'build/icons/logo_256.png');
@@ -29,6 +34,36 @@ ipcMain.handle('select-folder', async (event) => {
         return result.filePaths[0];
     }
     return null;
+});
+
+ipcMain.on('open-file', (event, filePath) => {
+    shell.openPath(filePath).then((result) => {
+        if (result) {
+            console.error('Error opening file:', result);
+            // Optionally, send an error back to the renderer process
+            event.sender.send('file-open-error', result);
+        }
+    }).catch((err) => {
+        console.error('Failed to open file:', err);
+        // Optionally, send an error back to the renderer process
+        event.sender.send('file-open-error', err.message);
+    });
+});
+
+ipcMain.handle('get-results', async () => {
+    try {
+        const resultFolders = fs.readdirSync(resultsDirectory, { withFileTypes: true })
+            .filter(dirent => dirent.isDirectory())
+            .map(dirent => {
+                const folderName = dirent.name;
+                const reportExists = fs.existsSync(path.join(resultsDirectory, folderName, 'report.txt'));
+                return { name: folderName, reportExists };
+            });
+        return resultFolders;
+    } catch (error) {
+        console.error('Error reading results directory:', error);
+        return [];
+    }
 });
 
 ipcMain.on('run-merge-command', (event, folderPath, mergeName) => {
