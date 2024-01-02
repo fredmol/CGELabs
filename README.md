@@ -23,7 +23,7 @@ To install the necessary tools, follow these steps:
 **Note:** The environment named must be cge_env for CGELabs to function properly. 
 If the environment is already installed it can be updated using:
 
-`conda update --all -n cge_env`
+`conda update --all -n cge_env -c genomicepidemiology`
 
 3. Download the CGELabs setup script from the CGE server:
 
@@ -53,7 +53,7 @@ Execute the script:
 
 ## Usage Guide
 1. Launch CGELabs from the applications menu.
-2. Choose the desired workflow.
+2. Choose the desired workflow. (To learn more about the workflows, visit the [Great-Life project repository](https:://github.com/genomicepidemiology/great-life).)
 3. Input all required parameters. This typically includes a unique experiment name and the selection of a .fastq file for analysis. All the analytical tools take a single .fastq file per analysis. If you have fresh Oxford Nanopore Sequencing output which is comprised on many, smaller files, these files can be merged using the in-app merge function. All output results will be located in /var/lib/cge/results/<experiment_name>.
 4. Initiate the experiment and monitor the real-time output in the integrated terminal window. Upon completion, the results will be accessible through the app's results page.
 

@@ -2,18 +2,30 @@ const { ipcRenderer } = require('electron');
 const fs = require('fs');
 const resultsDirectory = '/var/lib/cge/results';
 
+function resetMessages() {
+    const messageContainers = ['buttonContainer', 'virusButtonContainer', 'metagenomicsButtonContainer'];
+    messageContainers.forEach(containerId => {
+        const container = document.getElementById(containerId);
+        if (container) {
+            // Here, we need to target the specific <p> elements where the messages are shown
+            const existingMessages = container.querySelectorAll('p');
+            existingMessages.forEach(msg => msg.remove()); // This will remove each message element
+        }
+    });
+}
+
+
 function scrollToBottom(element) {
     requestAnimationFrame(() => {
         element.scrollTop = element.scrollHeight;
     });
 }
 
-// Modify this function to check for the report.txt file
 function setupResultsPage() {
     console.log('Setting up results page');
     ipcRenderer.invoke('get-results').then(resultFolders => {
         const tableBody = document.getElementById('resultsTable').querySelector('tbody');
-        tableBody.innerHTML = ''; // Clear existing rows
+        tableBody.innerHTML = '';
         resultFolders.forEach(folderInfo => {
             const row = tableBody.insertRow();
             const cellName = row.insertCell();
@@ -26,7 +38,6 @@ function setupResultsPage() {
                 link.textContent = 'Open Report';
                 link.addEventListener('click', (event) => {
                     event.preventDefault();
-                    // Handle opening of report.txt
                     ipcRenderer.send('open-file', `${resultsDirectory}/${folderInfo.name}/report.txt`);
                 });
                 cellLink.appendChild(link);
@@ -37,132 +48,25 @@ function setupResultsPage() {
     });
 }
 
-function setupVirusPage() {
-    const beginAnalysisButton = document.getElementById('beginVirusAnalysis');
-    const fileInput = document.getElementById('virusFileInput');
-    const experimentNameInput = document.getElementById('virusExperimentName');
-    const outputElement = document.getElementById('virusOutput');
-
-    if (beginAnalysisButton) {
-        beginAnalysisButton.addEventListener('click', () => {
-            const filePath = fileInput.files[0].path;
-            const experimentName = experimentNameInput.value;
-
-            if (filePath && experimentName) {
-                ipcRenderer.send('run-virus-command', filePath, experimentName);
-            } else {
-                console.log("File or experiment name not provided");
-            }
-        });
-
-        ipcRenderer.on('virus-command-output', (event, { stdout, stderr }) => {
-            if (outputElement) {
-                if (stdout) {
-                    outputElement.textContent += stdout + '\n';
-                }
-                if (stderr) {
-                    outputElement.textContent += stderr + '\n';
-                }
-                scrollToBottom(outputElement);
-            }
-        });
-
-        ipcRenderer.on('virus-complete-success', () => {
-            const buttonContainer = document.getElementById('virusButtonContainer');
-            if (!document.getElementById('viewVirusResults') && buttonContainer) {
-                const resultsButton = document.createElement('button');
-                resultsButton.textContent = 'View Virus Results';
-                resultsButton.id = 'viewVirusResults';
-                resultsButton.addEventListener('click', () => {
-                    fetch('results.html')
-                        .then(response => response.text())
-                        .then(html => {
-                            const mainContent = document.querySelector('.main-content');
-                            mainContent.innerHTML = html;
-                        })
-                        .catch(error => console.error('Failed to load virus results page:', error));
-                });
-
-                buttonContainer.appendChild(resultsButton);
-            }
-        });
-
-        ipcRenderer.on('virus-complete-failure', (event, errorMessage) => {
-            console.error(errorMessage);
-        });
-    }
-}
-
-function setupMetagenomicsPage() {
-    const beginAnalysisButton = document.getElementById('beginMetagenomicsAnalysis');
-    const fileInput = document.getElementById('metagenomicsFileInput');
-    const experimentNameInput = document.getElementById('metagenomicsExperimentName');
-    const outputElement = document.getElementById('metagenomicsOutput');
-
-    if (beginAnalysisButton) {
-        beginAnalysisButton.addEventListener('click', () => {
-            const filePath = fileInput.files[0].path;
-            const experimentName = experimentNameInput.value;
-
-            if (filePath && experimentName) {
-                ipcRenderer.send('run-metagenomics-command', filePath, experimentName);
-            } else {
-                console.log("File or experiment name not provided");
-            }
-        });
-
-        ipcRenderer.on('metagenomics-command-output', (event, { stdout, stderr }) => {
-            if (outputElement) {
-                if (stdout) {
-                    outputElement.textContent += stdout + '\n';
-                }
-                if (stderr) {
-                    outputElement.textContent += stderr + '\n';
-                }
-                scrollToBottom(outputElement);
-            }
-        });
-
-        ipcRenderer.on('metagenomics-complete-success', () => {
-            const buttonContainer = document.getElementById('metagenomicsButtonContainer');
-            if (!document.getElementById('viewMetagenomicsResults') && buttonContainer) {
-                const resultsButton = document.createElement('button');
-                resultsButton.textContent = 'View Metagenomics Results';
-                resultsButton.id = 'viewMetagenomicsResults';
-                resultsButton.addEventListener('click', () => {
-                    fetch('results.html')
-                        .then(response => response.text())
-                        .then(html => {
-                            const mainContent = document.querySelector('.main-content');
-                            mainContent.innerHTML = html;
-                        })
-                        .catch(error => console.error('Failed to load metagenomics results page:', error));
-                });
-
-                buttonContainer.appendChild(resultsButton);
-            }
-        });
-
-        ipcRenderer.on('metagenomics-complete-failure', (event, errorMessage) => {
-            console.error(errorMessage);
-        });
-    }
-}
-
-
 function setupBacteriaPage() {
     const beginAnalysisButton = document.getElementById('beginAnalysis');
     const fileInput = document.getElementById('fileInput');
     const experimentNameInput = document.getElementById('experimentName');
     const outputElement = document.getElementById('output');
+    const spinner = document.getElementById('loadingSpinner');
+    const spinnerText = spinner.querySelector('p'); // Assuming there is a <p> tag inside your spinner for text
+
 
     if (beginAnalysisButton) {
         beginAnalysisButton.addEventListener('click', () => {
+            resetMessages();
             const filePath = fileInput.files[0].path;
             const experimentName = experimentNameInput.value;
 
             if (filePath && experimentName) {
                 ipcRenderer.send('run-isolate-command', filePath, experimentName);
+                spinner.style.display = 'block';
+                spinnerText.textContent = 'Analyzing... Please wait.'; // Initial spinner text
             } else {
                 console.log("File or experiment name not provided");
             }
@@ -181,33 +85,125 @@ function setupBacteriaPage() {
         });
 
         ipcRenderer.on('isolate-complete-success', () => {
-            const buttonContainer = document.getElementById('buttonContainer');
-            if (!document.getElementById('viewResults') && buttonContainer) {
-                const resultsButton = document.createElement('button');
-                resultsButton.textContent = 'View Results';
-                resultsButton.id = 'viewResults';
-                resultsButton.addEventListener('click', () => {
-                fetch('results.html')
-                    .then(response => response.text())
-                    .then(html => {
-                            const mainContent = document.querySelector('.main-content');
-                            mainContent.innerHTML = html;
-                            // Call any initialization functions for results.html here, if needed
-                        })
-                        .catch(error => console.error('Failed to load results page:', error));
-                });
+        spinner.style.display = 'none';
+        const messageElement = document.createElement('p');
+        messageElement.textContent = 'Analysis completed successfully. View results in the Results section.';
+        document.getElementById('buttonContainer').appendChild(messageElement);
+    });
 
-
-                buttonContainer.appendChild(resultsButton);
-                }
-        });
-
-        ipcRenderer.on('isolate-complete-failure', (event, errorMessage) => {
-            console.error(errorMessage);
-            // Optionally, display the error message to the user
-        });
+    ipcRenderer.on('isolate-complete-failure', (event, errorMessage) => {
+        spinner.style.display = 'none';
+        const messageElement = document.createElement('p');
+        messageElement.textContent = 'Analysis failed. Check the console for details.';
+        document.getElementById('buttonContainer').appendChild(messageElement);
+    });
     }
 }
+
+function setupVirusPage() {
+    const beginAnalysisButton = document.getElementById('beginVirusAnalysis');
+    const fileInput = document.getElementById('virusFileInput');
+    const experimentNameInput = document.getElementById('virusExperimentName');
+    const outputElement = document.getElementById('virusOutput');
+    const spinner = document.getElementById('loadingSpinner');
+    const spinnerText = spinner.querySelector('p'); // Assuming there is a <p> tag inside your spinner for text
+
+    if (beginAnalysisButton) {
+        beginAnalysisButton.addEventListener('click', () => {
+            resetMessages();
+            const filePath = fileInput.files[0].path;
+            const experimentName = experimentNameInput.value;
+
+            if (filePath && experimentName) {
+                ipcRenderer.send('run-virus-command', filePath, experimentName);
+                spinner.style.display = 'block'; // Show spinner
+                spinnerText.textContent = 'Analyzing... Please wait.'; // Initial spinner text
+
+            } else {
+                console.log("File or experiment name not provided");
+            }
+        });
+
+        ipcRenderer.on('virus-command-output', (event, { stdout, stderr }) => {
+            if (outputElement) {
+                if (stdout) {
+                    outputElement.textContent += stdout + '\n';
+                }
+                if (stderr) {
+                    outputElement.textContent += stderr + '\n';
+                }
+                scrollToBottom(outputElement);
+            }
+        });
+
+        ipcRenderer.on('virus-complete-success', () => {
+        spinner.style.display = 'none';
+        const messageElement = document.createElement('p');
+        messageElement.textContent = 'Analysis completed successfully. View results in the Results section.';
+        document.getElementById('virusButtonContainer').appendChild(messageElement);
+    });
+
+    ipcRenderer.on('virus-complete-failure', (event, errorMessage) => {
+        spinner.style.display = 'none';
+        const messageElement = document.createElement('p');
+        messageElement.textContent = 'Analysis failed. Check the console for details.';
+        document.getElementById('virusButtonContainer').appendChild(messageElement);
+    });
+    }
+}
+
+function setupMetagenomicsPage() {
+    const beginAnalysisButton = document.getElementById('beginMetagenomicsAnalysis');
+    const fileInput = document.getElementById('metagenomicsFileInput');
+    const experimentNameInput = document.getElementById('metagenomicsExperimentName');
+    const outputElement = document.getElementById('metagenomicsOutput');
+    const spinner = document.getElementById('loadingSpinner');
+    const spinnerText = spinner.querySelector('p'); // Assuming there is a <p> tag inside your spinner for text
+
+    if (beginAnalysisButton) {
+        beginAnalysisButton.addEventListener('click', () => {
+            resetMessages();
+            const filePath = fileInput.files[0].path;
+            const experimentName = experimentNameInput.value;
+
+            if (filePath && experimentName) {
+                ipcRenderer.send('run-metagenomics-command', filePath, experimentName);
+                spinner.style.display = 'block'; // Show spinner
+                spinnerText.textContent = 'Analyzing... Please wait.'; // Initial spinner text
+            } else {
+                console.log("File or experiment name not provided");
+            }
+        });
+
+        ipcRenderer.on('metagenomics-command-output', (event, { stdout, stderr }) => {
+            if (outputElement) {
+                if (stdout) {
+                    outputElement.textContent += stdout + '\n';
+                }
+                if (stderr) {
+                    outputElement.textContent += stderr + '\n';
+                }
+                scrollToBottom(outputElement);
+            }
+        });
+
+        ipcRenderer.on('metagenomics-complete-success', () => {
+        spinner.style.display = 'none';
+        const messageElement = document.createElement('p');
+        messageElement.textContent = 'Analysis completed successfully. View results in the Results section.';
+        document.getElementById('metagenomicsButtonContainer').appendChild(messageElement);
+    });
+
+    ipcRenderer.on('metagenomics-complete-failure', (event, errorMessage) => {
+        spinner.style.display = 'none';
+        const messageElement = document.createElement('p');
+        messageElement.textContent = 'Analysis failed. Check the console for details.';
+        document.getElementById('metagenomicsButtonContainer').appendChild(messageElement);
+    });
+    }
+}
+
+
 function setupFastQMergePage() {
     const selectFolderButton = document.getElementById('selectFolder');
     const beginMergeButton = document.getElementById('beginMerge');
@@ -249,18 +245,23 @@ function setupFastQMergePage() {
     });
 }
 document.addEventListener('DOMContentLoaded', () => {
+    const mainContent = document.querySelector('.main-content');
+
+    mainContent.addEventListener('contentUpdated', () => {
+        if (window.location.hash === '#results') {
+            setupResultsPage();
+        }
+    });
+
     document.querySelectorAll('.sidebar a').forEach(link => {
         link.addEventListener('click', function(event) {
             event.preventDefault();
-
-            // Corrected line: Ensure href attribute is safely accessed
             const hrefAttribute = this.getAttribute('href');
             if (hrefAttribute) {
                 const page = hrefAttribute.substring(1);
                 fetch(page + '.html')
                     .then(response => response.text())
                     .then(data => {
-                        const mainContent = document.querySelector('.main-content');
                         mainContent.innerHTML = data;
                         if (page === 'bacteria') {
                             setupBacteriaPage();
@@ -270,7 +271,7 @@ document.addEventListener('DOMContentLoaded', () => {
                             setupVirusPage();
                         } else if (page === 'metagenomics') {
                             setupMetagenomicsPage();
-                        }  else if (page === 'results') {
+                        } else if (page === 'results') {
                             setupResultsPage();
                         }
                     });

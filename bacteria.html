@@ -13,9 +13,14 @@
         <input type="text" id="experimentName" placeholder="Enter experiment name"><br><br>
         <button id="beginAnalysis">Begin Analysis</button>
         <pre id="output"></pre>
-        <div id="buttonContainer" style="margin-top: 20px;"> <!-- Container for the button -->
+        <div id="buttonContainer" style="margin-top: 20px;">
+            <div id="loadingSpinner" style="display:none;">
+                <div class="spinner"></div>
+                <p>Analyzing... Please wait.</p>
+            </div>
+        <!-- The button will be dynamically added here -->
+        </div>
 
-    </div>
     <!-- Other scripts and HTML content -->
 <script src="renderer.js"></script>
 </body>
