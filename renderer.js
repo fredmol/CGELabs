@@ -2,19 +2,6 @@ const { ipcRenderer } = require('electron');
 const fs = require('fs');
 const resultsDirectory = '/var/lib/cge/results';
 
-function resetMessages() {
-    const messageContainers = ['buttonContainer', 'virusButtonContainer', 'metagenomicsButtonContainer'];
-    messageContainers.forEach(containerId => {
-        const container = document.getElementById(containerId);
-        if (container) {
-            // Here, we need to target the specific <p> elements where the messages are shown
-            const existingMessages = container.querySelectorAll('p');
-            existingMessages.forEach(msg => msg.remove()); // This will remove each message element
-        }
-    });
-}
-
-
 function scrollToBottom(element) {
     requestAnimationFrame(() => {
         element.scrollTop = element.scrollHeight;
@@ -54,19 +41,17 @@ function setupBacteriaPage() {
     const experimentNameInput = document.getElementById('experimentName');
     const outputElement = document.getElementById('output');
     const spinner = document.getElementById('loadingSpinner');
-    const spinnerText = spinner.querySelector('p'); // Assuming there is a <p> tag inside your spinner for text
-
+    const statusMessage = document.getElementById('statusMessage');
 
     if (beginAnalysisButton) {
         beginAnalysisButton.addEventListener('click', () => {
-            resetMessages();
             const filePath = fileInput.files[0].path;
             const experimentName = experimentNameInput.value;
 
             if (filePath && experimentName) {
                 ipcRenderer.send('run-isolate-command', filePath, experimentName);
                 spinner.style.display = 'block';
-                spinnerText.textContent = 'Analyzing... Please wait.'; // Initial spinner text
+                statusMessage.textContent = 'Analyzing... Please wait.';
             } else {
                 console.log("File or experiment name not provided");
             }
@@ -85,40 +70,33 @@ function setupBacteriaPage() {
         });
 
         ipcRenderer.on('isolate-complete-success', () => {
-        spinner.style.display = 'none';
-        const messageElement = document.createElement('p');
-        messageElement.textContent = 'Analysis completed successfully. View results in the Results section.';
-        document.getElementById('buttonContainer').appendChild(messageElement);
-    });
+            spinner.style.display = 'none';
+            statusMessage.textContent = 'Analysis completed successfully. View results in the Results section.';
+        });
 
-    ipcRenderer.on('isolate-complete-failure', (event, errorMessage) => {
-        spinner.style.display = 'none';
-        const messageElement = document.createElement('p');
-        messageElement.textContent = 'Analysis failed. Check the console for details.';
-        document.getElementById('buttonContainer').appendChild(messageElement);
-    });
+        ipcRenderer.on('isolate-complete-failure', (event, errorMessage) => {
+            spinner.style.display = 'none';
+            statusMessage.textContent = 'Analysis failed. Check the console for details.';
+        });
     }
 }
-
 function setupVirusPage() {
     const beginAnalysisButton = document.getElementById('beginVirusAnalysis');
     const fileInput = document.getElementById('virusFileInput');
     const experimentNameInput = document.getElementById('virusExperimentName');
     const outputElement = document.getElementById('virusOutput');
     const spinner = document.getElementById('loadingSpinner');
-    const spinnerText = spinner.querySelector('p'); // Assuming there is a <p> tag inside your spinner for text
+    const statusMessage = document.getElementById('statusMessage');
 
     if (beginAnalysisButton) {
         beginAnalysisButton.addEventListener('click', () => {
-            resetMessages();
             const filePath = fileInput.files[0].path;
             const experimentName = experimentNameInput.value;
 
             if (filePath && experimentName) {
                 ipcRenderer.send('run-virus-command', filePath, experimentName);
-                spinner.style.display = 'block'; // Show spinner
-                spinnerText.textContent = 'Analyzing... Please wait.'; // Initial spinner text
-
+                spinner.style.display = 'block';
+                statusMessage.textContent = 'Virus analysis running... Please wait.';
             } else {
                 console.log("File or experiment name not provided");
             }
@@ -137,18 +115,14 @@ function setupVirusPage() {
         });
 
         ipcRenderer.on('virus-complete-success', () => {
-        spinner.style.display = 'none';
-        const messageElement = document.createElement('p');
-        messageElement.textContent = 'Analysis completed successfully. View results in the Results section.';
-        document.getElementById('virusButtonContainer').appendChild(messageElement);
-    });
+            spinner.style.display = 'none';
+            statusMessage.textContent = 'Virus analysis completed successfully. View results in the Results section.';
+        });
 
-    ipcRenderer.on('virus-complete-failure', (event, errorMessage) => {
-        spinner.style.display = 'none';
-        const messageElement = document.createElement('p');
-        messageElement.textContent = 'Analysis failed. Check the console for details.';
-        document.getElementById('virusButtonContainer').appendChild(messageElement);
-    });
+        ipcRenderer.on('virus-complete-failure', (event, errorMessage) => {
+            spinner.style.display = 'none';
+            statusMessage.textContent = 'Virus analysis failed. Check the console for details.';
+        });
     }
 }
 
@@ -158,18 +132,17 @@ function setupMetagenomicsPage() {
     const experimentNameInput = document.getElementById('metagenomicsExperimentName');
     const outputElement = document.getElementById('metagenomicsOutput');
     const spinner = document.getElementById('loadingSpinner');
-    const spinnerText = spinner.querySelector('p'); // Assuming there is a <p> tag inside your spinner for text
+    const statusMessage = document.getElementById('statusMessage');
 
     if (beginAnalysisButton) {
         beginAnalysisButton.addEventListener('click', () => {
-            resetMessages();
             const filePath = fileInput.files[0].path;
             const experimentName = experimentNameInput.value;
 
             if (filePath && experimentName) {
                 ipcRenderer.send('run-metagenomics-command', filePath, experimentName);
-                spinner.style.display = 'block'; // Show spinner
-                spinnerText.textContent = 'Analyzing... Please wait.'; // Initial spinner text
+                spinner.style.display = 'block';
+                statusMessage.textContent = 'Metagenomics analysis running... Please wait.';
             } else {
                 console.log("File or experiment name not provided");
             }
@@ -188,18 +161,14 @@ function setupMetagenomicsPage() {
         });
 
         ipcRenderer.on('metagenomics-complete-success', () => {
-        spinner.style.display = 'none';
-        const messageElement = document.createElement('p');
-        messageElement.textContent = 'Analysis completed successfully. View results in the Results section.';
-        document.getElementById('metagenomicsButtonContainer').appendChild(messageElement);
-    });
+            spinner.style.display = 'none';
+            statusMessage.textContent = 'Metagenomics analysis completed successfully. View results in the Results section.';
+        });
 
-    ipcRenderer.on('metagenomics-complete-failure', (event, errorMessage) => {
-        spinner.style.display = 'none';
-        const messageElement = document.createElement('p');
-        messageElement.textContent = 'Analysis failed. Check the console for details.';
-        document.getElementById('metagenomicsButtonContainer').appendChild(messageElement);
-    });
+        ipcRenderer.on('metagenomics-complete-failure', (event, errorMessage) => {
+            spinner.style.display = 'none';
+            statusMessage.textContent = 'Metagenomics analysis failed. Check the console for details.';
+        });
     }
 }
 
