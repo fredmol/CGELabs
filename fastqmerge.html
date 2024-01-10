@@ -3,19 +3,25 @@
 <head>
     <title>FastQ Merge</title>
     <link rel="stylesheet" type="text/css" href="styles.css">
+    <!-- Other head elements as in your Bacteria Page -->
 </head>
 <body>
+    <div>
+        <h1>FastQ Merge</h1>
+        <p>Select a folder and enter the merge name to begin the merge process.</p>
+        <button id="selectFolder">Select Folder</button>
+        <p id="folderPath">No folder selected</p>
+        <input type="text" id="mergeNameInput" placeholder="Enter merge name"><br><br>
+        <button id="beginMerge">Begin Merge</button>
+        <pre id="mergeOutput"></pre>
+    </div>
 
-<div>
-    <h1>FastQ Merge</h1>
-    <button id="selectFolder">Select Folder</button>
-    <p id="folderPath"></p>
-    <input type="text" id="mergeName" placeholder="Merged output file name prefix">
-    <button id="beginMerge" style="display:none;">Begin Merge</button>
-    <pre id="mergeOutput"></pre> <!-- Terminal-like output box -->
-</div>
+    <div id="loadingSpinner" style="display:none; margin-top: 20px;">
+        <div class="spinner"></div>
+    </div>
+    <p id="statusMessage">Waiting to start merge...</p>
 
-<script src="renderer.js"></script> <!-- Update with your actual script file name -->
-
+    <!-- Include other scripts and HTML content as needed -->
+    <script src="renderer.js"></script>
 </body>
 </html>

@@ -69,6 +69,39 @@ ipcMain.on('run-metagenomics-command', (event, filePath, experimentName) => {
     runAnalysisCommand('cgemetagenomics', filePath, experimentName, event, 'metagenomics');
 });
 
+ipcMain.on('run-merge-command', (event, filePath, experimentName) => {
+    mergeCondaCommand('cgeutil', filePath, experimentName, event, 'merge');
+});
+
+
+function mergeCondaCommand(scriptName, filePath, experimentName, event, analysisType) {
+    const homeDirectory = os.homedir();
+    const condaPath = `${homeDirectory}/anaconda3/bin/conda`;
+    const scriptPath = `${homeDirectory}/anaconda3/envs/cge_env/bin/${scriptName}`;
+    const pythonPath = `${homeDirectory}/anaconda3/envs/cge_env/bin/python3`;
+
+    const args = ['run', '--live-stream', '-n', 'cge_env', pythonPath, scriptPath, 'merge', '--dir_path', filePath, '--name', experimentName];
+    const process = spawn(condaPath, args);
+
+    process.stdout.on('data', (data) => {
+        event.sender.send(`${analysisType}-command-output`, { stdout: data.toString() });
+    });
+
+    process.stderr.on('data', (data) => {
+        event.sender.send(`${analysisType}-command-output`, { stderr: data.toString() });
+    });
+
+    process.on('close', (code) => {
+        if (code === 0) {
+            event.sender.send(`${analysisType}-complete-success`);
+        } else {
+            event.sender.send(`${analysisType}-complete-failure`, `Process exited with code ${code}`);
+        }
+    });
+}
+
+
+
 function runAnalysisCommand(scriptName, filePath, experimentName, event, analysisType) {
     const homeDirectory = os.homedir();
     const condaPath = `${homeDirectory}/anaconda3/bin/conda`;

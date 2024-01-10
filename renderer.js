@@ -172,47 +172,63 @@ function setupMetagenomicsPage() {
     }
 }
 
-
 function setupFastQMergePage() {
-    const selectFolderButton = document.getElementById('selectFolder');
     const beginMergeButton = document.getElementById('beginMerge');
-    const folderPathText = document.getElementById('folderPath');
-    const mergeNameInput = document.getElementById('mergeName'); // New input for merge name
-    const mergeOutputElement = document.getElementById('mergeOutput');
+    const folderPathElement = document.getElementById('folderPath'); // Element to display folder path
+    const mergeNameInput = document.getElementById('mergeNameInput');
+    const outputElement = document.getElementById('mergeOutput');
+    const spinner = document.getElementById('loadingSpinner');
+    const statusMessage = document.getElementById('statusMessage');
 
-    if (selectFolderButton && beginMergeButton && folderPathText && mergeNameInput) {
-        selectFolderButton.addEventListener('click', () => {
-            ipcRenderer.invoke('select-folder').then(folderPath => {
-                if (folderPath) {
-                    folderPathText.textContent = `Selected Folder: ${folderPath}`;
-                    beginMergeButton.style.display = 'block'; // Show the button
-                }
-            });
-        });
-
-        beginMergeButton.addEventListener('click', () => {
-            const folderPath = folderPathText.textContent.replace('Selected Folder: ', '');
-            const mergeName = mergeNameInput.value; // Get the merge name from the input
-            if (folderPath && mergeName) {
-                ipcRenderer.send('run-merge-command', folderPath, mergeName);
+    // Event listener for the select folder button
+    selectFolder.addEventListener('click', () => {
+        ipcRenderer.invoke('select-folder').then((selectedFolderPath) => {
+            if (selectedFolderPath) {
+                folderPathElement.textContent = selectedFolderPath; // Update the folder path text
             } else {
-                console.log("No folder selected or merge name provided");
+                folderPathElement.textContent = 'No folder selected';
             }
         });
-    }
+    });
 
-    ipcRenderer.on('merge-command-output', (event, data) => {
-        if (mergeOutputElement) {
-            if (data.stdout) {
-                mergeOutputElement.textContent += data.stdout;
-            }
-            if (data.stderr) {
-                mergeOutputElement.textContent += data.stderr;
-            }
-            scrollToBottom(mergeOutputElement);
+    beginMergeButton.addEventListener('click', () => {
+        const folderPath = folderPathElement.textContent; // Get folder path from the text content
+        const mergeName = mergeNameInput.value;
+
+        if (folderPath && mergeName) {
+            ipcRenderer.send('run-merge-command', folderPath, mergeName);
+            spinner.style.display = 'block';
+            statusMessage.textContent = 'Merging... Please wait.';
+        } else {
+            console.log('Folder path or merge name not provided');
+            statusMessage.textContent = 'Please provide a folder path and a merge name.';
         }
     });
+
+    ipcRenderer.on('merge-command-output', (event, { stdout, stderr }) => {
+        if (outputElement) {
+            if (stdout) {
+                outputElement.textContent += stdout + '\n';
+            }
+            if (stderr) {
+                outputElement.textContent += stderr + '\n';
+            }
+            scrollToBottom(outputElement);
+        }
+    });
+
+    ipcRenderer.on('merge-complete-success', () => {
+        spinner.style.display = 'none';
+        statusMessage.textContent = 'Merge completed successfully.';
+    });
+
+    ipcRenderer.on('merge-complete-failure', (event, errorMessage) => {
+        spinner.style.display = 'none';
+        statusMessage.textContent = 'Merge failed. Check the console for details.';
+    });
 }
+
+
 document.addEventListener('DOMContentLoaded', () => {
     const mainContent = document.querySelector('.main-content');
 
