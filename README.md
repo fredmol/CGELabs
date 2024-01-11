@@ -4,7 +4,7 @@ Welcome to the official repository for CGELabs. CGELabs is a sophisticated Elect
 ## Front-end Installation Instructions for CGELabs
 1. Visit the GitHub page to identify the latest release version of CGELabs.
 2. Use the wget command to download the appropriate .deb file from the CGE server, ensuring to replace the version number with the latest one. For example:
-`wget https://cge.cbs.dtu.dk/services/CGELabs/CGELabs-1.0.0.deb`
+`wget https://cge.cbs.dtu.dk/services/great-life/CGELabs-1.0.0.deb`
 4. Install the downloaded package using the dpkg tool:
 `sudo dpkg -i CGELabs-1.0.0.deb`
 **Important Note:** This step installs only the front-end of CGELabs, which is not functional standalone. To fully utilize CGELabs, you must separately install the necessary bioinformatic tools and download the cge_db. Detailed installation guidelines are available in the [Great-Life project repository](https://github.com/genomicepidemiology/great-life) or below.
@@ -14,7 +14,7 @@ The back-end bioinformatic tools are managed by the conda package manager. The f
 To install the necessary tools, follow these steps:
 1. Download the cge_env environment file from the CGE server:
 
-`wget https://cge.cbs.dtu.dk/services/CGELabs/cge_env.yml`
+`wget https://cge.cbs.dtu.dk/services/great-life/cge_env.yml`
 
 2. Create a new conda environment using the downloaded environment file:
 
@@ -27,7 +27,7 @@ If the environment is already installed it can be updated using:
 
 3. Download the CGELabs setup script from the CGE server:
 
-`wget https://cge.cbs.dtu.dk/services/CGELabs/setup.py`
+`wget https://cge.cbs.dtu.dk/services/great-life/setup.py`
 
 4. Execute the setup script:
 
@@ -35,7 +35,7 @@ If the environment is already installed it can be updated using:
 
 5. Download the cge_db from the CGE server:
 
-`wget https://cge.cbs.dtu.dk/services/CGELabs/cge_db.tar.gz`
+`wget https://cge.cbs.dtu.dk/services/great-life/cge_db.tar.gz`
 
 6. Extract the cge_db:
 
@@ -47,7 +47,7 @@ If the environment is already installed it can be updated using:
 
 ## Dependencny check
 To check if all dependencies are installed correctly, download the dependency check script from the CGE server:
-`wget https://cge.cbs.dtu.dk/services/CGELabs/cgelabs_dependency_check.py`
+`wget https://cge.cbs.dtu.dk/services/great-life/cgelabs_dependency_check.py`
 Execute the script:
 `python3 cgelabs_dependency_check.py`
 
@@ -84,7 +84,7 @@ This command installs all necessary dependencies.
 The built application package will be located in `build/CGELabs-<version>.deb`.
 
 ### Future Development
-If new features are developed and to be released, the developer should build the application using the build process described above. The new .deb file should then be uploaded to the CGE server under /home/www/htdocs/services/CGELabs/ .
+If new features are developed and to be released, the developer should build the application using the build process described above. The new .deb file should then be uploaded to the CGE server under /home/www/htdocs/services/great-life/ .
 
 
 
