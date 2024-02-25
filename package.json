@@ -49,6 +49,7 @@
     "deb": {
       "maintainer": "Malte Hallgren",
       "synopsis": "CGELabs App"
-    }
+    },
+    "publish": "never"
   }
 }
