@@ -24,4 +24,4 @@ jobs:
 
     - name: Build app
       run: npm run dist
-      # If you use a custom build command or script, replace 'npm run build' with it.
+      ## If you use a custom build command or script, replace 'npm run build' with it.
