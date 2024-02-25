@@ -50,6 +50,6 @@
       "maintainer": "Malte Hallgren",
       "synopsis": "CGELabs App"
     },
-    "publish": "never"
+    "publish": null
   }
 }
