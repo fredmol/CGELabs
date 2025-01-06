@@ -1,6 +1,19 @@
 const { ipcRenderer } = require('electron');
+const path = require('path');
 const fs = require('fs');
+
 const resultsDirectory = '/var/lib/cge/results';
+
+// Utility functions
+function showElement(elementId) {
+    const element = document.getElementById(elementId);
+    if (element) element.style.display = 'block';
+}
+
+function hideElement(elementId) {
+    const element = document.getElementById(elementId);
+    if (element) element.style.display = 'none';
+}
 
 function scrollToBottom(element) {
     requestAnimationFrame(() => {
@@ -8,30 +21,159 @@ function scrollToBottom(element) {
     });
 }
 
+function createStatusCell(status) {
+    const cell = document.createElement('td');
+    const statusDiv = document.createElement('div');
+    statusDiv.className = 'status-cell';
+    
+    const indicator = document.createElement('span');
+    indicator.className = 'status-indicator';
+    
+    switch(status) {
+        case 'complete':
+            indicator.classList.add('status-success');
+            statusDiv.appendChild(indicator);
+            statusDiv.appendChild(document.createTextNode('Complete'));
+            break;
+        case 'pending':
+            indicator.classList.add('status-pending');
+            statusDiv.appendChild(indicator);
+            statusDiv.appendChild(document.createTextNode('Processing'));
+            break;
+        default:
+            indicator.classList.add('status-error');
+            statusDiv.appendChild(indicator);
+            statusDiv.appendChild(document.createTextNode('Error'));
+    }
+    
+    cell.appendChild(statusDiv);
+    return cell;
+}
+
 function setupResultsPage() {
     console.log('Setting up results page');
+    showElement('loadingResults');
+    hideElement('errorResults');
+    hideElement('resultsTable');
+
     ipcRenderer.invoke('get-results').then(resultFolders => {
+        hideElement('loadingResults');
+        showElement('resultsTable');
+
         const tableBody = document.getElementById('resultsTable').querySelector('tbody');
         tableBody.innerHTML = '';
+        
         resultFolders.forEach(folderInfo => {
             const row = tableBody.insertRow();
+            
+            // Analysis Name
             const cellName = row.insertCell();
-            const cellLink = row.insertCell();
             cellName.textContent = folderInfo.name;
-
+            
+            // Text Report
+            const cellTextReport = row.insertCell();
             if (folderInfo.reportExists) {
-                const link = document.createElement('a');
-                link.href = '#';
-                link.textContent = 'Open Report';
-                link.addEventListener('click', (event) => {
+                const textLink = document.createElement('a');
+                textLink.href = '#';
+                textLink.textContent = 'Open Text Report';
+                textLink.addEventListener('click', (event) => {
                     event.preventDefault();
                     ipcRenderer.send('open-file', `${resultsDirectory}/${folderInfo.name}/report.txt`);
                 });
-                cellLink.appendChild(link);
+                cellTextReport.appendChild(textLink);
             } else {
-                cellLink.textContent = 'No report available. Likely the analysis failed or was stopped prematurely.';
+                cellTextReport.textContent = 'No report available';
+            }
+            
+            // PDF Report
+            const cellPdfReport = row.insertCell();
+            if (folderInfo.pdfExists) {
+                const viewLink = document.createElement('a');
+                viewLink.href = '#';
+                viewLink.textContent = 'View in App';
+                viewLink.addEventListener('click', (event) => {
+                    event.preventDefault();
+                    const pdfPath = path.join(resultsDirectory, folderInfo.name, `${folderInfo.name}_report.pdf`);
+                    ipcRenderer.send('show-pdf', pdfPath);
+                });
+                
+                const openLink = document.createElement('a');
+                openLink.href = '#';
+                openLink.textContent = 'Open External';
+                openLink.addEventListener('click', (event) => {
+                    event.preventDefault();
+                    const pdfPath = path.join(resultsDirectory, folderInfo.name, `${folderInfo.name}_report.pdf`);
+                    ipcRenderer.send('open-file', pdfPath);
+                });
+                
+                cellPdfReport.appendChild(viewLink);
+                cellPdfReport.appendChild(document.createTextNode(' | '));
+                cellPdfReport.appendChild(openLink);
+            } else {
+                cellPdfReport.textContent = 'No PDF report available';
+            }
+            
+            // Status
+            row.appendChild(createStatusCell(folderInfo.status));
+        });
+    }).catch(error => {
+        console.error('Error loading results:', error);
+        hideElement('loadingResults');
+        showElement('errorResults');
+    });
+}
+
+function setupPdfViewer() {
+    const backButton = document.getElementById('backButton');
+    const openExternal = document.getElementById('openExternal');
+    const pdfViewer = document.getElementById('pdfViewer');
+    const loadingSpinner = document.getElementById('loadingSpinner');
+    const errorMessage = document.getElementById('errorMessage');
+    
+    if (backButton) {
+        backButton.addEventListener('click', () => {
+            ipcRenderer.send('show-results');
+        });
+    }
+
+    if (openExternal) {
+        openExternal.addEventListener('click', () => {
+            const pdfPath = pdfViewer.getAttribute('data-path');
+            if (pdfPath) {
+                ipcRenderer.send('open-file', pdfPath);
             }
         });
+    }
+
+    if (errorMessage) {
+        errorMessage.style.display = 'none';
+    }
+
+    ipcRenderer.on('load-pdf', (event, pdfPath) => {
+        if (loadingSpinner) loadingSpinner.style.display = 'block';
+        if (errorMessage) errorMessage.style.display = 'none';
+        
+        if (pdfViewer) {
+            pdfViewer.setAttribute('data-path', pdfPath);
+            pdfViewer.src = pdfPath;
+            
+            pdfViewer.onload = () => {
+                if (loadingSpinner) loadingSpinner.style.display = 'none';
+            };
+            
+            pdfViewer.onerror = () => {
+                if (loadingSpinner) loadingSpinner.style.display = 'none';
+                if (errorMessage) errorMessage.style.display = 'block';
+            };
+        }
+    });
+
+    ipcRenderer.on('pdf-error', (event, message) => {
+        if (loadingSpinner) loadingSpinner.style.display = 'none';
+        if (errorMessage) {
+            errorMessage.textContent = message;
+            errorMessage.style.display = 'block';
+        }
     });
 }
 
@@ -80,6 +222,7 @@ function setupBacteriaPage() {
         });
     }
 }
+
 function setupVirusPage() {
     const beginAnalysisButton = document.getElementById('beginVirusAnalysis');
     const fileInput = document.getElementById('virusFileInput');
@@ -172,65 +315,14 @@ function setupMetagenomicsPage() {
     }
 }
 
-function setupFastQMergePage() {
-    const beginMergeButton = document.getElementById('beginMerge');
-    const folderPathElement = document.getElementById('folderPath'); // Element to display folder path
-    const mergeNameInput = document.getElementById('mergeNameInput');
-    const outputElement = document.getElementById('mergeOutput');
-    const spinner = document.getElementById('loadingSpinner');
-    const statusMessage = document.getElementById('statusMessage');
-
-    // Event listener for the select folder button
-    selectFolder.addEventListener('click', () => {
-        ipcRenderer.invoke('select-folder').then((selectedFolderPath) => {
-            if (selectedFolderPath) {
-                folderPathElement.textContent = selectedFolderPath; // Update the folder path text
-            } else {
-                folderPathElement.textContent = 'No folder selected';
-            }
-        });
-    });
-
-    beginMergeButton.addEventListener('click', () => {
-        const folderPath = folderPathElement.textContent; // Get folder path from the text content
-        const mergeName = mergeNameInput.value;
-
-        if (folderPath && mergeName) {
-            ipcRenderer.send('run-merge-command', folderPath, mergeName);
-            spinner.style.display = 'block';
-            statusMessage.textContent = 'Merging... Please wait.';
-        } else {
-            console.log('Folder path or merge name not provided');
-            statusMessage.textContent = 'Please provide a folder path and a merge name.';
-        }
-    });
-
-    ipcRenderer.on('merge-command-output', (event, { stdout, stderr }) => {
-        if (outputElement) {
-            if (stdout) {
-                outputElement.textContent += stdout + '\n';
-            }
-            if (stderr) {
-                outputElement.textContent += stderr + '\n';
-            }
-            scrollToBottom(outputElement);
-        }
-    });
-
-    ipcRenderer.on('merge-complete-success', () => {
-        spinner.style.display = 'none';
-        statusMessage.textContent = 'Merge completed successfully.';
-    });
-
-    ipcRenderer.on('merge-complete-failure', (event, errorMessage) => {
-        spinner.style.display = 'none';
-        statusMessage.textContent = 'Merge failed. Check the console for details.';
-    });
-}
-
-
+// Event listeners
 document.addEventListener('DOMContentLoaded', () => {
     const mainContent = document.querySelector('.main-content');
+
+    if (window.location.pathname.endsWith('report-viewer.html')) {
+        setupPdfViewer();
+        return;
+    }
 
     mainContent.addEventListener('contentUpdated', () => {
         if (window.location.hash === '#results') {
@@ -248,10 +340,9 @@ document.addEventListener('DOMContentLoaded', () => {
                     .then(response => response.text())
                     .then(data => {
                         mainContent.innerHTML = data;
+                        mainContent.dispatchEvent(new Event('contentUpdated'));
                         if (page === 'bacteria') {
                             setupBacteriaPage();
-                        } else if (page === 'fastqmerge') {
-                            setupFastQMergePage();
                         } else if (page === 'virus') {
                             setupVirusPage();
                         } else if (page === 'metagenomics') {
@@ -259,6 +350,10 @@ document.addEventListener('DOMContentLoaded', () => {
                         } else if (page === 'results') {
                             setupResultsPage();
                         }
+                    })
+                    .catch(error => {
+                        console.error('Error loading page:', error);
+                        mainContent.innerHTML = '<div class="error-message">Error loading page</div>';
                     });
             }
         });

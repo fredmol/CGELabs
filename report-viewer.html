@@ -1,0 +1,26 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Report Viewer</title>
+    <link rel="stylesheet" type="text/css" href="styles.css">
+</head>
+<body>
+    <div class="viewer-container">
+        <div class="viewer-header">
+            <button id="backButton" class="back-button">← Back to Results</button>
+            <button id="openExternal" class="external-button">Open in System Viewer</button>
+        </div>
+        <div id="loadingSpinner" class="loading-spinner-container" style="display: none;">
+            <div class="spinner"></div>
+            <p>Loading PDF...</p>
+        </div>
+        <div id="errorMessage" class="error-message" style="display: none;">
+            Error loading PDF. Please try opening it externally.
+        </div>
+        <div class="pdf-container">
+            <embed id="pdfViewer" type="application/pdf" width="100%" height="100%">
+        </div>
+    </div>
+    <script src="renderer.js"></script>
+</body>
+</html>

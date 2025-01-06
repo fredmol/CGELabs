@@ -3,15 +3,24 @@
 <head>
     <title>Results</title>
     <link rel="stylesheet" type="text/css" href="styles.css">
-    <!-- Other head elements -->
 </head>
 <body>
     <div>
         <h1>Results</h1>
+        <div id="loadingResults" class="loading-spinner-container" style="display: none;">
+            <div class="spinner"></div>
+            <p>Loading results...</p>
+        </div>
+        <div id="errorResults" class="error-message" style="display: none;">
+            Error loading results. Please try refreshing the page.
+        </div>
         <table id="resultsTable">
             <thead>
                 <tr>
                     <th>Analysis Name</th>
+                    <th>Text Report</th>
+                    <th>PDF Report</th>
+                    <th>Status</th>
                 </tr>
             </thead>
             <tbody>
