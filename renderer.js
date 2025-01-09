@@ -1,127 +1,263 @@
+/**
+ * CGELabs - Renderer Process
+ * 
+ * This file handles the renderer process functionality, including:
+ * - Page-specific setup and functionality
+ * - UI state management
+ * - Real-time output streaming
+ * - User interaction handling
+ * - IPC communication with main process
+ */
+
+// ============================================================================
+// Core Dependencies and Constants
+// ============================================================================
 const { ipcRenderer } = require('electron');
 const path = require('path');
 const fs = require('fs');
 
-const resultsDirectory = '/var/lib/cge/results';
+const resultsDirectory = '/var/lib/cge_test/results';
 
-// Utility functions
+// Global state management
+let currentProcess = null;
+let outputHistory = {};
+let currentPage = null;
+let pageStates = {};
+
+// ============================================================================
+// Utility Functions
+// ============================================================================
+
+/**
+ * Shows an element by its ID
+ */
 function showElement(elementId) {
     const element = document.getElementById(elementId);
     if (element) element.style.display = 'block';
 }
 
+/**
+ * Hides an element by its ID
+ */
 function hideElement(elementId) {
     const element = document.getElementById(elementId);
     if (element) element.style.display = 'none';
 }
 
+/**
+ * Scrolls an element to the bottom
+ */
 function scrollToBottom(element) {
     requestAnimationFrame(() => {
         element.scrollTop = element.scrollHeight;
     });
 }
 
-function createStatusCell(status) {
-    const cell = document.createElement('td');
-    const statusDiv = document.createElement('div');
-    statusDiv.className = 'status-cell';
-    
-    const indicator = document.createElement('span');
-    indicator.className = 'status-indicator';
-    
-    switch(status) {
-        case 'complete':
-            indicator.classList.add('status-success');
-            statusDiv.appendChild(indicator);
-            statusDiv.appendChild(document.createTextNode('Complete'));
-            break;
-        case 'pending':
-            indicator.classList.add('status-pending');
-            statusDiv.appendChild(indicator);
-            statusDiv.appendChild(document.createTextNode('Processing'));
-            break;
-        default:
-            indicator.classList.add('status-error');
-            statusDiv.appendChild(indicator);
-            statusDiv.appendChild(document.createTextNode('Error'));
-    }
-    
-    cell.appendChild(statusDiv);
-    return cell;
-}
 
+// ============================================================================
+// Results Page Management
+// ============================================================================
+
+/**
+ * Sets up the results page functionality
+ */
 function setupResultsPage() {
     console.log('Setting up results page');
     showElement('loadingResults');
     hideElement('errorResults');
     hideElement('resultsTable');
 
+    // Setup header with search and directory button
+    const headerDiv = document.querySelector('.results-header') || document.createElement('div');
+    headerDiv.className = 'results-header';
+    headerDiv.innerHTML = `
+        <div class="search-container">
+            <input type="text" id="searchResults" placeholder="Search results..." class="search-input">
+        </div>
+        <button id="openResultsDir" class="directory-button">Open Results Directory</button>
+    `;
+    const tableContainer = document.getElementById('resultsTable').parentElement;
+    tableContainer.insertBefore(headerDiv, tableContainer.firstChild);
+
+    // Directory button listener
+    document.getElementById('openResultsDir').addEventListener('click', () => {
+        ipcRenderer.invoke('open-results-directory');
+    });
+
+    let allResults = []; // Store all results for filtering
+
+    // Load and display results
     ipcRenderer.invoke('get-results').then(resultFolders => {
         hideElement('loadingResults');
         showElement('resultsTable');
+        allResults = resultFolders;
 
-        const tableBody = document.getElementById('resultsTable').querySelector('tbody');
-        tableBody.innerHTML = '';
-        
-        resultFolders.forEach(folderInfo => {
-            const row = tableBody.insertRow();
-            
-            // Analysis Name
-            const cellName = row.insertCell();
-            cellName.textContent = folderInfo.name;
-            
-            // Text Report
-            const cellTextReport = row.insertCell();
-            if (folderInfo.reportExists) {
-                const textLink = document.createElement('a');
-                textLink.href = '#';
-                textLink.textContent = 'Open Text Report';
-                textLink.addEventListener('click', (event) => {
-                    event.preventDefault();
-                    ipcRenderer.send('open-file', `${resultsDirectory}/${folderInfo.name}/report.txt`);
-                });
-                cellTextReport.appendChild(textLink);
-            } else {
-                cellTextReport.textContent = 'No report available';
-            }
-            
-            // PDF Report
-            const cellPdfReport = row.insertCell();
-            if (folderInfo.pdfExists) {
-                const viewLink = document.createElement('a');
-                viewLink.href = '#';
-                viewLink.textContent = 'View in App';
-                viewLink.addEventListener('click', (event) => {
-                    event.preventDefault();
-                    const pdfPath = path.join(resultsDirectory, folderInfo.name, `${folderInfo.name}_report.pdf`);
-                    ipcRenderer.send('show-pdf', pdfPath);
-                });
-                
-                const openLink = document.createElement('a');
-                openLink.href = '#';
-                openLink.textContent = 'Open External';
-                openLink.addEventListener('click', (event) => {
-                    event.preventDefault();
-                    const pdfPath = path.join(resultsDirectory, folderInfo.name, `${folderInfo.name}_report.pdf`);
-                    ipcRenderer.send('open-file', pdfPath);
-                });
-                
-                cellPdfReport.appendChild(viewLink);
-                cellPdfReport.appendChild(document.createTextNode(' | '));
-                cellPdfReport.appendChild(openLink);
-            } else {
-                cellPdfReport.textContent = 'No PDF report available';
-            }
-            
-            // Status
-            row.appendChild(createStatusCell(folderInfo.status));
+        const searchInput = document.getElementById('searchResults');
+        searchInput.addEventListener('input', () => {
+            updateResultsTable(filterResults(searchInput.value, allResults));
         });
+
+        updateResultsTable(resultFolders);
     }).catch(error => {
         console.error('Error loading results:', error);
         hideElement('loadingResults');
         showElement('errorResults');
     });
 }
+
+/**
+ * Updates the results table with filtered data
+ */
+function updateResultsTable(resultFolders) {
+    const tableBody = document.getElementById('resultsTable').querySelector('tbody');
+    const tableHead = document.getElementById('resultsTable').querySelector('thead tr');
+    
+    // Update headers
+    tableHead.innerHTML = `
+        <th>Analysis Name</th>
+        <th>Tool Type</th>
+        <th>Date</th>
+        <th>Text Report</th>
+        <th>PDF Report</th>
+        <th>Actions</th>
+    `;
+    
+    tableBody.innerHTML = '';
+    
+    resultFolders.forEach(folderInfo => {
+        const row = tableBody.insertRow();
+        
+        // Analysis Name with preview toggle
+        const cellName = row.insertCell();
+        const nameContainer = document.createElement('div');
+        nameContainer.className = 'name-container';
+        nameContainer.innerHTML = `
+            <div class="name-with-indicator">
+                <span class="folder-name">${folderInfo.name}</span>
+                <span class="details-text">Click to view details</span>
+            </div>
+        `;
+        cellName.appendChild(nameContainer);
+        
+        // Tool Type
+        const cellType = row.insertCell();
+        cellType.textContent = folderInfo.toolType;
+        
+        // Date
+        const cellDate = row.insertCell();
+        cellDate.textContent = new Date(folderInfo.date).toLocaleString();
+        
+        // Text Report
+        const cellTextReport = row.insertCell();
+        if (folderInfo.reportExists) {
+            const textLink = document.createElement('a');
+            textLink.href = '#';
+            textLink.textContent = 'Open Text Report';
+            textLink.addEventListener('click', (event) => {
+                event.preventDefault();
+                ipcRenderer.send('open-file', `${resultsDirectory}/${folderInfo.name}/report.txt`);
+            });
+            cellTextReport.appendChild(textLink);
+        } else {
+            cellTextReport.textContent = 'No report available';
+        }
+        
+        // PDF Report
+        const cellPdfReport = row.insertCell();
+        if (folderInfo.pdfExists) {
+            const viewLink = document.createElement('a');
+            viewLink.href = '#';
+            viewLink.textContent = 'View in App';
+            viewLink.addEventListener('click', (event) => {
+                event.preventDefault();
+                const pdfPath = path.join(resultsDirectory, folderInfo.name, `${folderInfo.name}_report.pdf`);
+                ipcRenderer.send('show-pdf', pdfPath);
+            });
+            
+            const openLink = document.createElement('a');
+            openLink.href = '#';
+            openLink.textContent = 'Open External';
+            openLink.addEventListener('click', (event) => {
+                event.preventDefault();
+                const pdfPath = path.join(resultsDirectory, folderInfo.name, `${folderInfo.name}_report.pdf`);
+                ipcRenderer.send('open-file', pdfPath);
+            });
+            
+            cellPdfReport.appendChild(viewLink);
+            cellPdfReport.appendChild(document.createTextNode(' | '));
+            cellPdfReport.appendChild(openLink);
+        } else {
+            cellPdfReport.textContent = 'No PDF report available';
+        }
+        
+        // Delete button
+        const cellActions = row.insertCell();
+        const deleteButton = document.createElement('button');
+        deleteButton.textContent = 'Delete';
+        deleteButton.className = 'delete-button';
+        deleteButton.addEventListener('click', async () => {
+            if (confirm(`Are you sure you want to delete ${folderInfo.name}?`)) {
+                const success = await ipcRenderer.invoke('delete-result', folderInfo.name);
+                if (success) {
+                    setupResultsPage();
+                } else {
+                    alert('Failed to delete result');
+                }
+            }
+        });
+        cellActions.appendChild(deleteButton);
+
+        // Preview row
+        const previewRow = tableBody.insertRow();
+        previewRow.className = 'preview-row hidden';
+        const previewCell = previewRow.insertCell();
+        previewCell.colSpan = 6;
+        previewCell.innerHTML = `<div class="preview-content">Loading preview...</div>`;
+
+        // Preview functionality
+        cellName.addEventListener('click', async () => {
+            const detailsText = nameContainer.querySelector('.details-text');
+            const content = previewCell.querySelector('.preview-content');
+            
+            if (previewRow.classList.contains('hidden')) {
+                previewRow.classList.remove('hidden');
+                detailsText.textContent = 'Click to hide details';
+                
+                try {
+                    const reportPath = path.join(resultsDirectory, folderInfo.name, 'report.txt');
+                    const reportContent = await fs.promises.readFile(reportPath, 'utf8');
+                    
+                    const lines = reportContent.split('\n');
+                    const titleLine = lines.find(line => line.includes('Analysis report:'));
+                    const templateLine = lines.find(line => line.includes('Template:'));
+                    const identityLine = lines.find(line => line.includes('Identity:'));
+                    
+                    if (templateLine && identityLine) {
+                        const preview = `
+                            <div class="preview-header">Analysis Details</div>
+                            <div class="preview-details">
+                                <div><strong>Species:</strong> ${templateLine.split('Template:')[1].trim().split(' chromosome')[0]}</div>
+                                <div><strong>Match Quality:</strong> ${identityLine.trim()}</div>
+                            </div>
+                        `;
+                        content.innerHTML = preview;
+                    } else {
+                        content.innerHTML = '<div class="preview-error">No species identification available</div>';
+                    }
+                } catch (error) {
+                    content.innerHTML = '<div class="preview-error">Error loading preview</div>';
+                }
+            } else {
+                previewRow.classList.add('hidden');
+                detailsText.textContent = 'Click to view details';
+            }
+        });
+    });
+}
+
+// ============================================================================
+// PDF Viewer Setup
+// ============================================================================
 
 function setupPdfViewer() {
     const backButton = document.getElementById('backButton');
@@ -177,20 +313,93 @@ function setupPdfViewer() {
     });
 }
 
+// ============================================================================
+// Analysis Page Setup Functions
+// ============================================================================
+
+/**
+ * Sets up the bacteria analysis page
+ */
 function setupBacteriaPage() {
+    // Remove any existing listeners first
+    ipcRenderer.removeAllListeners('isolate-command-output');
+    ipcRenderer.removeAllListeners('isolate-complete-success');
+    ipcRenderer.removeAllListeners('isolate-complete-failure');
+
+    // Rest of the original setupBacteriaPage code...
     const beginAnalysisButton = document.getElementById('beginAnalysis');
     const fileInput = document.getElementById('fileInput');
     const experimentNameInput = document.getElementById('experimentName');
     const outputElement = document.getElementById('output');
     const spinner = document.getElementById('loadingSpinner');
     const statusMessage = document.getElementById('statusMessage');
+    const resultButtons = document.getElementById('resultButtons');
+    const openResults = document.getElementById('openResults');
+    const openPdf = document.getElementById('openPdf');
+    const openText = document.getElementById('openText');
+    const cancelButton = document.getElementById('cancelAnalysis');
+    const nameWarning = document.getElementById('nameWarning');
 
+    // Check for existing folder on experiment name change
+    if (experimentNameInput) {
+	    experimentNameInput.addEventListener('input', () => {
+		const folderPath = path.join('/var/lib/cge_test/results', experimentNameInput.value);
+		nameWarning.textContent = 'A folder with this name already exists. Please choose a different name.';
+		
+		if (experimentNameInput.value && fs.existsSync(folderPath)) {
+		    nameWarning.style.display = 'block';
+		    nameWarning.style.color = '#e74c3c';  // Red color for warning
+		    beginAnalysisButton.disabled = true;
+		} else {
+		    nameWarning.style.display = 'none';
+		    beginAnalysisButton.disabled = false;
+		}
+	    });
+	}
+
+    // File size check
+    if (fileInput) {
+	    const fileSizeWarning = document.getElementById('fileSizeWarning');
+	    fileInput.addEventListener('change', async () => {
+		if (fileInput.files[0]) {
+		    const result = await ipcRenderer.invoke('check-file-size', fileInput.files[0].path);
+		    if (result.warning) {
+		        fileSizeWarning.textContent = result.message;
+		        fileSizeWarning.style.display = 'block';
+		        fileSizeWarning.style.color = '#e74c3c';  // Red warning color
+		        statusMessage.textContent = 'Warning: File size issue detected';
+		        statusMessage.style.color = '#e74c3c';
+		    } else {
+		        fileSizeWarning.style.display = 'none';
+		        statusMessage.textContent = 'Ready to start analysis...';
+		        statusMessage.style.color = '';
+		    }
+		} else {
+		    fileSizeWarning.style.display = 'none';
+		}
+	    });
+	}
+
+    // Restore previous output if it exists
+    const experimentName = experimentNameInput ? experimentNameInput.value : '';
+    if (outputElement && outputHistory[experimentName]) {
+        outputElement.textContent = outputHistory[experimentName];
+    }
+
+    // Begin analysis button handler
     if (beginAnalysisButton) {
         beginAnalysisButton.addEventListener('click', () => {
-            const filePath = fileInput.files[0].path;
+            const filePath = fileInput.files[0]?.path;
             const experimentName = experimentNameInput.value;
 
             if (filePath && experimentName) {
+                if (resultButtons) {
+                    resultButtons.style.display = 'none';
+                }
+                outputHistory[experimentName] = '';
+                outputElement.textContent = '';
+                currentProcess = experimentName;
+                cancelButton.style.display = 'block';
                 ipcRenderer.send('run-isolate-command', filePath, experimentName);
                 spinner.style.display = 'block';
                 statusMessage.textContent = 'Analyzing... Please wait.';
@@ -198,31 +407,92 @@ function setupBacteriaPage() {
                 console.log("File or experiment name not provided");
             }
         });
+    }
 
-        ipcRenderer.on('isolate-command-output', (event, { stdout, stderr }) => {
-            if (outputElement) {
-                if (stdout) {
-                    outputElement.textContent += stdout + '\n';
-                }
-                if (stderr) {
-                    outputElement.textContent += stderr + '\n';
-                }
-                scrollToBottom(outputElement);
+    // Cancel analysis button handler
+    if (cancelButton) {
+        cancelButton.addEventListener('click', () => {
+            if (currentProcess) {
+                const folderPath = path.join('/var/lib/cge_test/results', currentProcess);
+                ipcRenderer.send('cancel-analysis', currentProcess, folderPath);
+                cancelButton.style.display = 'none';
+                spinner.style.display = 'none';
+                statusMessage.textContent = 'Analysis cancelled.';
             }
         });
+    }
 
-        ipcRenderer.on('isolate-complete-success', () => {
-            spinner.style.display = 'none';
-            statusMessage.textContent = 'Analysis completed successfully. View results in the Results section.';
+    // Results buttons handlers
+    if (openResults) {
+        openResults.addEventListener('click', () => {
+            const experimentName = experimentNameInput.value;
+            const folderPath = path.join('/var/lib/cge_test/results', experimentName);
+            ipcRenderer.send('open-results-directory', folderPath);
         });
+    }
 
-        ipcRenderer.on('isolate-complete-failure', (event, errorMessage) => {
-            spinner.style.display = 'none';
-            statusMessage.textContent = 'Analysis failed. Check the console for details.';
+    if (openPdf) {
+        openPdf.addEventListener('click', () => {
+            const experimentName = experimentNameInput.value;
+            const pdfPath = path.join('/var/lib/cge_test/results', experimentName, `${experimentName}_report.pdf`);
+            ipcRenderer.send('show-pdf', pdfPath);
         });
+    }
+
+    if (openText) {
+        openText.addEventListener('click', () => {
+            const experimentName = experimentNameInput.value;
+            const textPath = path.join('/var/lib/cge_test/results', experimentName, 'report.txt');
+            ipcRenderer.send('open-file', textPath);
+        });
+    }
+
+    // Event listeners for command output and completion
+    ipcRenderer.on('isolate-command-output', (event, { stdout, stderr }) => {
+        if (outputElement && currentProcess) {
+            if (stdout) {
+                outputHistory[currentProcess] = outputHistory[currentProcess] || '';
+                outputHistory[currentProcess] += stdout + '\n';
+                outputElement.textContent = outputHistory[currentProcess];
+            }
+            if (stderr) {
+                outputHistory[currentProcess] = outputHistory[currentProcess] || '';
+                outputHistory[currentProcess] += stderr + '\n';
+                outputElement.textContent = outputHistory[currentProcess];
+            }
+            scrollToBottom(outputElement);
+        }
+    });
+
+    ipcRenderer.on('isolate-complete-success', () => {
+        spinner.style.display = 'none';
+        cancelButton.style.display = 'none';
+        statusMessage.textContent = 'Analysis completed successfully. View results in the Results section.';
+        if (resultButtons) {
+            resultButtons.style.display = 'block';
+        }
+        currentProcess = null;
+    });
+
+    ipcRenderer.on('isolate-complete-failure', (event, errorMessage) => {
+        spinner.style.display = 'none';
+        cancelButton.style.display = 'none';
+        statusMessage.textContent = 'Analysis failed. Check the console for details.';
+        if (resultButtons) {
+            resultButtons.style.display = 'none';
+        }
+        currentProcess = null;
+    });
+
+    // Save page state if needed
+    if (currentPage === 'bacteria') {
+        savePageState('bacteria');
     }
 }
 
+/**
+ * Sets up the virus analysis page
+ */
 function setupVirusPage() {
     const beginAnalysisButton = document.getElementById('beginVirusAnalysis');
     const fileInput = document.getElementById('virusFileInput');
@@ -269,6 +539,9 @@ function setupVirusPage() {
     }
 }
 
+/**
+ * Sets up the metagenomics analysis page
+ */
 function setupMetagenomicsPage() {
     const beginAnalysisButton = document.getElementById('beginMetagenomicsAnalysis');
     const fileInput = document.getElementById('metagenomicsFileInput');
@@ -315,24 +588,89 @@ function setupMetagenomicsPage() {
     }
 }
 
-// Event listeners
+// ============================================================================
+// Event Listeners and Initialization
+// ============================================================================
+
 document.addEventListener('DOMContentLoaded', () => {
     const mainContent = document.querySelector('.main-content');
-
+    
+    // Check if we're on index page and add class
+    if (!window.location.hash) {
+        document.body.classList.add('index-page');
+    }
+    
+    // Special handling for PDF viewer page
     if (window.location.pathname.endsWith('report-viewer.html')) {
         setupPdfViewer();
         return;
     }
-
+    
+    // Content update handler
     mainContent.addEventListener('contentUpdated', () => {
         if (window.location.hash === '#results') {
             setupResultsPage();
         }
     });
-
+    
+    // Make feature cards clickable if they exist (on index page)
+    document.querySelectorAll('.feature-card').forEach(card => {
+        card.addEventListener('click', function() {
+            document.body.classList.remove('index-page');
+            
+            // Get the text from h3 and convert to lowercase for page name
+            const heading = this.querySelector('h3').textContent.toLowerCase();
+            let pageName;
+            
+            // Map the heading text to the correct page name
+            switch(heading) {
+                case 'bacterial analysis':
+                    pageName = 'bacteria';
+                    break;
+                case 'viral analysis':
+                    pageName = 'virus';
+                    break;
+                case 'metagenomics':
+                    pageName = 'metagenomics';
+                    break;
+                case 'results':
+                    pageName = 'results';
+                    break;
+                case 'fastq tools':
+                    pageName = 'fastqmerge';
+                    break;
+                default:
+                    pageName = heading;
+            }
+            
+            fetch(pageName + '.html')
+                .then(response => response.text())
+                .then(data => {
+                    mainContent.innerHTML = data;
+                    mainContent.dispatchEvent(new Event('contentUpdated'));
+                    
+                    if (pageName === 'bacteria') {
+                        setupBacteriaPage();
+                    } else if (pageName === 'virus') {
+                        setupVirusPage();
+                    } else if (pageName === 'metagenomics') {
+                        setupMetagenomicsPage();
+                    } else if (pageName === 'results') {
+                        setupResultsPage();
+                    }
+                })
+                .catch(error => {
+                    console.error('Error loading page:', error);
+                    mainContent.innerHTML = '<div class="error-message">Error loading page</div>';
+                });
+        });
+    });
+    
+    // Setup navigation
     document.querySelectorAll('.sidebar a').forEach(link => {
         link.addEventListener('click', function(event) {
             event.preventDefault();
+            document.body.classList.remove('index-page');
             const hrefAttribute = this.getAttribute('href');
             if (hrefAttribute) {
                 const page = hrefAttribute.substring(1);
@@ -359,3 +697,125 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     });
 });
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+// ============================================================================
+// Currently Unused Functions - Kept for Reference
+// ============================================================================
+
+/**
+ * Creates a status cell for the results table
+ */
+function createStatusCell(status) {
+    const cell = document.createElement('td');
+    const statusDiv = document.createElement('div');
+    statusDiv.className = 'status-cell';
+    
+    const indicator = document.createElement('span');
+    indicator.className = 'status-indicator';
+    
+    switch(status) {
+        case 'complete':
+            indicator.classList.add('status-success');
+            statusDiv.appendChild(indicator);
+            statusDiv.appendChild(document.createTextNode('Complete'));
+            break;
+        case 'pending':
+            indicator.classList.add('status-pending');
+            statusDiv.appendChild(indicator);
+            statusDiv.appendChild(document.createTextNode('Processing'));
+            break;
+        default:
+            indicator.classList.add('status-error');
+            statusDiv.appendChild(indicator);
+            statusDiv.appendChild(document.createTextNode('Error'));
+    }
+    
+    cell.appendChild(statusDiv);
+    return cell;
+}
+
+/**
+ * Filters results based on search term
+ */
+function filterResults(searchTerm, results) {
+    if (!searchTerm) return results;
+    searchTerm = searchTerm.toLowerCase();
+    return results.filter(result => 
+        result.name.toLowerCase().includes(searchTerm) ||
+        result.toolType.toLowerCase().includes(searchTerm) ||
+        new Date(result.date).toLocaleString().toLowerCase().includes(searchTerm)
+    );
+}
+
+/**
+ * Saves the current state of a page
+ */
+function savePageState(page) {
+    if (!page) return;
+    
+    pageStates[page] = {
+        output: document.getElementById('output')?.textContent || '',
+        experimentName: document.getElementById('experimentName')?.value || '',
+        statusMessage: document.getElementById('statusMessage')?.textContent || '',
+        showSpinner: document.getElementById('loadingSpinner')?.style.display === 'block',
+        showResultButtons: document.getElementById('resultButtons')?.style.display === 'block',
+        showCancelButton: document.getElementById('cancelAnalysis')?.style.display === 'block'
+    };
+}
+
+/**
+ * Loads the saved state of a page
+ */
+function loadPageState(page) {
+    if (!page || !pageStates[page]) return;
+    
+    const state = pageStates[page];
+    const outputElement = document.getElementById('output');
+    const experimentNameInput = document.getElementById('experimentName');
+    const statusMessage = document.getElementById('statusMessage');
+    const spinner = document.getElementById('loadingSpinner');
+    const resultButtons = document.getElementById('resultButtons');
+    const cancelButton = document.getElementById('cancelAnalysis');
+
+    if (outputElement) outputElement.textContent = state.output;
+    if (experimentNameInput) experimentNameInput.value = state.experimentName;
+    if (statusMessage) statusMessage.textContent = state.statusMessage;
+    if (spinner) spinner.style.display = state.showSpinner ? 'block' : 'none';
+    if (resultButtons) resultButtons.style.display = state.showResultButtons ? 'block' : 'none';
+    if (cancelButton) cancelButton.style.display = state.showCancelButton ? 'block' : 'none';
+}
