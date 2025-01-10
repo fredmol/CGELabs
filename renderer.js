@@ -23,6 +23,8 @@ let currentProcess = null;
 let outputHistory = {};
 let currentPage = null;
 let pageStates = {};
+let currentSortColumn = 'date';  // Default sort by date
+let currentSortDirection = 'desc';  // Default newest first
 
 // ============================================================================
 // Utility Functions
@@ -53,6 +55,25 @@ function scrollToBottom(element) {
     });
 }
 
+
+/**
+ * Validates experiment name for allowed characters
+ * @param {string} name - The experiment name to validate
+ * @returns {Object} - { isValid: boolean, message: string }
+ */
+function validateExperimentName(name) {
+    const validPattern = /^[a-zA-Z0-9_-]+$/;
+    if (!name) {
+        return { isValid: false, message: 'Experiment name is required.' };
+    }
+    if (!validPattern.test(name)) {
+        return { 
+            isValid: false, 
+            message: 'Experiment name can only contain letters, numbers, underscores, and hyphens.' 
+        };
+    }
+    return { isValid: true, message: '' };
+}
 
 // ============================================================================
 // Results Page Management
@@ -112,15 +133,60 @@ function updateResultsTable(resultFolders) {
     const tableBody = document.getElementById('resultsTable').querySelector('tbody');
     const tableHead = document.getElementById('resultsTable').querySelector('thead tr');
     
-    // Update headers
+    // Helper function to get sort icon
+    function getSortIcon(column) {
+        if (currentSortColumn !== column) return '&nbsp;&#8645;'; // Show both up/down for unsorted
+        return currentSortDirection === 'asc' ? '&nbsp;&#8593;' : '&nbsp;&#8595;'; // Show up or down arrow
+    }
+    
+    // Update headers with sort indicators
     tableHead.innerHTML = `
-        <th>Analysis Name</th>
-        <th>Tool Type</th>
-        <th>Date</th>
+        <th class="sortable" data-sort="name">
+            Analysis Name <span class="sort-icon">${getSortIcon('name')}</span>
+        </th>
+        <th class="sortable" data-sort="toolType">
+            Tool Type <span class="sort-icon">${getSortIcon('toolType')}</span>
+        </th>
+        <th class="sortable" data-sort="date">
+            Date <span class="sort-icon">${getSortIcon('date')}</span>
+        </th>
         <th>Text Report</th>
         <th>PDF Report</th>
         <th>Actions</th>
     `;
+
+    // Add click handlers for sortable headers
+    tableHead.querySelectorAll('.sortable').forEach(header => {
+        header.addEventListener('click', () => {
+            const column = header.dataset.sort;
+            if (currentSortColumn === column) {
+                currentSortDirection = currentSortDirection === 'asc' ? 'desc' : 'asc';
+            } else {
+                currentSortColumn = column;
+                currentSortDirection = 'desc';
+            }
+            updateResultsTable(resultFolders);
+        });
+    });
+
+    // Sort the results
+    resultFolders.sort((a, b) => {
+        let comparison = 0;
+        switch (currentSortColumn) {
+            case 'name':
+                comparison = a.name.localeCompare(b.name);
+                break;
+            case 'toolType':
+                comparison = a.toolType.localeCompare(b.toolType);
+                break;
+            case 'date':
+                comparison = new Date(a.date) - new Date(b.date);  // Changed from b.date - a.date
+                break;
+            default:
+                comparison = 0;
+        }
+        return currentSortDirection === 'asc' ? comparison : -comparison;  // No change needed here
+    });
     
     tableBody.innerHTML = '';
     
@@ -143,9 +209,18 @@ function updateResultsTable(resultFolders) {
         const cellType = row.insertCell();
         cellType.textContent = folderInfo.toolType;
         
-        // Date
+        // Date - Format to 24H clock
         const cellDate = row.insertCell();
-        cellDate.textContent = new Date(folderInfo.date).toLocaleString();
+        const date = new Date(folderInfo.date);
+        cellDate.textContent = date.toLocaleString('en-US', { 
+            year: 'numeric', 
+            month: 'numeric', 
+            day: 'numeric',
+            hour: '2-digit', 
+            minute: '2-digit',
+            second: '2-digit',
+            hour12: false 
+        });
         
         // Text Report
         const cellTextReport = row.insertCell();
@@ -326,7 +401,6 @@ function setupBacteriaPage() {
     ipcRenderer.removeAllListeners('isolate-complete-success');
     ipcRenderer.removeAllListeners('isolate-complete-failure');
 
-    // Rest of the original setupBacteriaPage code...
     const beginAnalysisButton = document.getElementById('beginAnalysis');
     const fileInput = document.getElementById('fileInput');
     const experimentNameInput = document.getElementById('experimentName');
@@ -340,45 +414,52 @@ function setupBacteriaPage() {
     const cancelButton = document.getElementById('cancelAnalysis');
     const nameWarning = document.getElementById('nameWarning');
 
-    // Check for existing folder on experiment name change
+    // Check for existing folder and validate experiment name
     if (experimentNameInput) {
-	    experimentNameInput.addEventListener('input', () => {
-		const folderPath = path.join('/var/lib/cge_test/results', experimentNameInput.value);
-		nameWarning.textContent = 'A folder with this name already exists. Please choose a different name.';
-		
-		if (experimentNameInput.value && fs.existsSync(folderPath)) {
-		    nameWarning.style.display = 'block';
-		    nameWarning.style.color = '#e74c3c';  // Red color for warning
-		    beginAnalysisButton.disabled = true;
-		} else {
-		    nameWarning.style.display = 'none';
-		    beginAnalysisButton.disabled = false;
-		}
-	    });
-	}
+        experimentNameInput.addEventListener('input', () => {
+            const name = experimentNameInput.value;
+            const validation = validateExperimentName(name);
+            const folderPath = path.join('/var/lib/cge_test/results', name);
+            
+            if (!validation.isValid) {
+                nameWarning.textContent = validation.message;
+                nameWarning.style.display = 'block';
+                nameWarning.style.color = '#e74c3c';  // Red color for warning
+                beginAnalysisButton.disabled = true;
+            } else if (name && fs.existsSync(folderPath)) {
+                nameWarning.textContent = 'A folder with this name already exists. Please choose a different name.';
+                nameWarning.style.display = 'block';
+                nameWarning.style.color = '#e74c3c';
+                beginAnalysisButton.disabled = true;
+            } else {
+                nameWarning.style.display = 'none';
+                beginAnalysisButton.disabled = false;
+            }
+        });
+    }
 
     // File size check
     if (fileInput) {
-	    const fileSizeWarning = document.getElementById('fileSizeWarning');
-	    fileInput.addEventListener('change', async () => {
-		if (fileInput.files[0]) {
-		    const result = await ipcRenderer.invoke('check-file-size', fileInput.files[0].path);
-		    if (result.warning) {
-		        fileSizeWarning.textContent = result.message;
-		        fileSizeWarning.style.display = 'block';
-		        fileSizeWarning.style.color = '#e74c3c';  // Red warning color
-		        statusMessage.textContent = 'Warning: File size issue detected';
-		        statusMessage.style.color = '#e74c3c';
-		    } else {
-		        fileSizeWarning.style.display = 'none';
-		        statusMessage.textContent = 'Ready to start analysis...';
-		        statusMessage.style.color = '';
-		    }
-		} else {
-		    fileSizeWarning.style.display = 'none';
-		}
-	    });
-	}
+        const fileSizeWarning = document.getElementById('fileSizeWarning');
+        fileInput.addEventListener('change', async () => {
+            if (fileInput.files[0]) {
+                const result = await ipcRenderer.invoke('check-file-size', fileInput.files[0].path);
+                if (result.warning) {
+                    fileSizeWarning.textContent = result.message;
+                    fileSizeWarning.style.display = 'block';
+                    fileSizeWarning.style.color = '#e74c3c';  // Red warning color
+                    statusMessage.textContent = 'Warning: File size issue detected';
+                    statusMessage.style.color = '#e74c3c';
+                } else {
+                    fileSizeWarning.style.display = 'none';
+                    statusMessage.textContent = 'Ready to start analysis...';
+                    statusMessage.style.color = '';
+                }
+            } else {
+                fileSizeWarning.style.display = 'none';
+            }
+        });
+    }
 
     // Restore previous output if it exists
     const experimentName = experimentNameInput ? experimentNameInput.value : '';
@@ -543,48 +624,178 @@ function setupVirusPage() {
  * Sets up the metagenomics analysis page
  */
 function setupMetagenomicsPage() {
+    // Remove any existing listeners first
+    ipcRenderer.removeAllListeners('metagenomics-command-output');
+    ipcRenderer.removeAllListeners('metagenomics-complete-success');
+    ipcRenderer.removeAllListeners('metagenomics-complete-failure');
+
     const beginAnalysisButton = document.getElementById('beginMetagenomicsAnalysis');
     const fileInput = document.getElementById('metagenomicsFileInput');
     const experimentNameInput = document.getElementById('metagenomicsExperimentName');
     const outputElement = document.getElementById('metagenomicsOutput');
     const spinner = document.getElementById('loadingSpinner');
     const statusMessage = document.getElementById('statusMessage');
+    const resultButtons = document.getElementById('resultButtons');
+    const openResults = document.getElementById('openResults');
+    const openPdf = document.getElementById('openPdf');
+    const openText = document.getElementById('openText');
+    const cancelButton = document.getElementById('cancelAnalysis');
+    const nameWarning = document.getElementById('nameWarning');
 
+    // Check for existing folder on experiment name change
+    if (experimentNameInput) {
+        experimentNameInput.addEventListener('input', () => {
+            const name = experimentNameInput.value;
+            const validation = validateExperimentName(name);
+            const folderPath = path.join('/var/lib/cge_test/results', name);
+            
+            if (!validation.isValid) {
+                nameWarning.textContent = validation.message;
+                nameWarning.style.display = 'block';
+                nameWarning.style.color = '#e74c3c';  // Red color for warning
+                beginAnalysisButton.disabled = true;
+            } else if (name && fs.existsSync(folderPath)) {
+                nameWarning.textContent = 'A folder with this name already exists. Please choose a different name.';
+                nameWarning.style.display = 'block';
+                nameWarning.style.color = '#e74c3c';
+                beginAnalysisButton.disabled = true;
+            } else {
+                nameWarning.style.display = 'none';
+                beginAnalysisButton.disabled = false;
+            }
+        });
+    }
+
+    // File size check
+    if (fileInput) {
+        const fileSizeWarning = document.getElementById('fileSizeWarning');
+        fileInput.addEventListener('change', async () => {
+            if (fileInput.files[0]) {
+                const result = await ipcRenderer.invoke('check-file-size', fileInput.files[0].path);
+                if (result.warning) {
+                    fileSizeWarning.textContent = result.message;
+                    fileSizeWarning.style.display = 'block';
+                    fileSizeWarning.style.color = '#e74c3c';  // Red warning color
+                    statusMessage.textContent = 'Warning: File size issue detected';
+                    statusMessage.style.color = '#e74c3c';
+                } else {
+                    fileSizeWarning.style.display = 'none';
+                    statusMessage.textContent = 'Ready to start analysis...';
+                    statusMessage.style.color = '';
+                }
+            } else {
+                fileSizeWarning.style.display = 'none';
+            }
+        });
+    }
+
+    // Restore previous output if it exists
+    const experimentName = experimentNameInput ? experimentNameInput.value : '';
+    if (outputElement && outputHistory[experimentName]) {
+        outputElement.textContent = outputHistory[experimentName];
+    }
+
+    // Begin analysis button handler
     if (beginAnalysisButton) {
         beginAnalysisButton.addEventListener('click', () => {
-            const filePath = fileInput.files[0].path;
+            const filePath = fileInput.files[0]?.path;
             const experimentName = experimentNameInput.value;
 
             if (filePath && experimentName) {
+                if (resultButtons) {
+                    resultButtons.style.display = 'none';
+                }
+                outputHistory[experimentName] = '';
+                outputElement.textContent = '';
+                currentProcess = experimentName;
+                cancelButton.style.display = 'block';
                 ipcRenderer.send('run-metagenomics-command', filePath, experimentName);
                 spinner.style.display = 'block';
-                statusMessage.textContent = 'Metagenomics analysis running... Please wait.';
+                statusMessage.textContent = 'Analyzing... Please wait.';
             } else {
                 console.log("File or experiment name not provided");
             }
         });
+    }
 
-        ipcRenderer.on('metagenomics-command-output', (event, { stdout, stderr }) => {
-            if (outputElement) {
-                if (stdout) {
-                    outputElement.textContent += stdout + '\n';
-                }
-                if (stderr) {
-                    outputElement.textContent += stderr + '\n';
-                }
-                scrollToBottom(outputElement);
+    // Cancel analysis button handler
+    if (cancelButton) {
+        cancelButton.addEventListener('click', () => {
+            if (currentProcess) {
+                const folderPath = path.join('/var/lib/cge_test/results', currentProcess);
+                ipcRenderer.send('cancel-analysis', currentProcess, folderPath);
+                cancelButton.style.display = 'none';
+                spinner.style.display = 'none';
+                statusMessage.textContent = 'Analysis cancelled.';
             }
         });
+    }
 
-        ipcRenderer.on('metagenomics-complete-success', () => {
-            spinner.style.display = 'none';
-            statusMessage.textContent = 'Metagenomics analysis completed successfully. View results in the Results section.';
+    // Results buttons handlers
+    if (openResults) {
+        openResults.addEventListener('click', () => {
+            const experimentName = experimentNameInput.value;
+            const folderPath = path.join('/var/lib/cge_test/results', experimentName);
+            ipcRenderer.send('open-results-directory', folderPath);
         });
+    }
 
-        ipcRenderer.on('metagenomics-complete-failure', (event, errorMessage) => {
-            spinner.style.display = 'none';
-            statusMessage.textContent = 'Metagenomics analysis failed. Check the console for details.';
+    if (openPdf) {
+        openPdf.addEventListener('click', () => {
+            const experimentName = experimentNameInput.value;
+            const pdfPath = path.join('/var/lib/cge_test/results', experimentName, `${experimentName}_report.pdf`);
+            ipcRenderer.send('show-pdf', pdfPath);
         });
+    }
+
+    if (openText) {
+        openText.addEventListener('click', () => {
+            const experimentName = experimentNameInput.value;
+            const textPath = path.join('/var/lib/cge_test/results', experimentName, 'report.txt');
+            ipcRenderer.send('open-file', textPath);
+        });
+    }
+
+    // Event listeners for command output and completion
+    ipcRenderer.on('metagenomics-command-output', (event, { stdout, stderr }) => {
+        if (outputElement && currentProcess) {
+            if (stdout) {
+                outputHistory[currentProcess] = outputHistory[currentProcess] || '';
+                outputHistory[currentProcess] += stdout + '\n';
+                outputElement.textContent = outputHistory[currentProcess];
+            }
+            if (stderr) {
+                outputHistory[currentProcess] = outputHistory[currentProcess] || '';
+                outputHistory[currentProcess] += stderr + '\n';
+                outputElement.textContent = outputHistory[currentProcess];
+            }
+            scrollToBottom(outputElement);
+        }
+    });
+
+    ipcRenderer.on('metagenomics-complete-success', () => {
+        spinner.style.display = 'none';
+        cancelButton.style.display = 'none';
+        statusMessage.textContent = 'Analysis completed successfully. View results in the Results section.';
+        if (resultButtons) {
+            resultButtons.style.display = 'block';
+        }
+        currentProcess = null;
+    });
+
+    ipcRenderer.on('metagenomics-complete-failure', (event, errorMessage) => {
+        spinner.style.display = 'none';
+        cancelButton.style.display = 'none';
+        statusMessage.textContent = 'Analysis failed. Check the console for details.';
+        if (resultButtons) {
+            resultButtons.style.display = 'none';
+        }
+        currentProcess = null;
+    });
+
+    // Save page state if needed
+    if (currentPage === 'metagenomics') {
+        savePageState('metagenomics');
     }
 }
 

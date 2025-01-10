@@ -1,5 +1,24 @@
 # Changelog
 
+## [1.1.2] - 2025-01-10
+### Added
+- Metagenomics Page
+  - Matched layout and functionality with bacteria page
+  - Added file size warning system
+  - Added experiment name validation
+  - Added cancel analysis functionality
+  - Added results handling with PDF and text report viewing
+  - Added metagenomics-specific info section
+
+### Enhanced
+- Input Validation
+  - Added character validation for experiment names (both bacteria and metagenomics)
+  - Only allows letters, numbers, underscores, and hyphens
+  - Real-time validation feedback
+  - Integrated with existing folder existence checks
+  - Clear warning messages for invalid inputs
+  
+
 ## [1.1.1] - 2025-01-10
 ### Enhanced
 
