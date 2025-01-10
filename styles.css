@@ -359,16 +359,6 @@ input[type="text"] {
 
 
 
-
-/* Add this new class */
-.analysis-container {
-    background: white;
-    border-radius: 12px;
-    padding: 30px;
-    box-shadow: 0 2px 12px rgba(0,0,0,0.1);
-    margin-bottom: 30px;
-}
-
 /* Update input styling */
 .input-group {
     margin-bottom: 24px;
@@ -601,6 +591,25 @@ body.index-page .main-content {
     padding: 40px;
 }
 
+.sortable {
+    cursor: pointer;
+    user-select: none;
+    position: relative;
+}
 
+.sortable:hover {
+    background-color: #45a049 !important;
+}
 
+.sort-icon {
+    font-size: 18px;  /* Increased from 14px */
+    font-weight: bold;
+    display: inline-block;
+    width: 20px;
+    text-align: center;
+}
 
+#resultsTable th {
+    padding-right: 25px;
+    white-space: nowrap;
+}

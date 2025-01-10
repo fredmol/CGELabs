@@ -6,99 +6,97 @@
     <link rel="stylesheet" type="text/css" href="styles.css">
 </head>
 <body>
-    <div class="analysis-container">
-        <div class="header-section">
-	    <div class="header-content">
-		<div class="header-text">
-		    <h1>Bacterial Analysis</h1>
-		    <p class="subtitle">Analyze bacterial isolates using CGE's pipeline.</p>
-		</div>
-		<div class="header-icon">
-		    <i class="fas fa-bacteria"></i>
-		</div>
-	    </div>
-	</div>
-
-        <!-- File Input Section -->
-        <div class="input-section">
-            <div class="input-group">
-                <label for="fileInput" class="input-label">FastQ File</label>
-                <div class="file-input-wrapper">
-                    <input type="file" id="fileInput" accept=".fastq,.fastq.gz,.fq,.fq.gz">
-                </div>
-                <p id="fileSizeWarning" class="warning-text"></p>
+    <div class="header-section">
+        <div class="header-content">
+            <div class="header-text">
+                <h1>Bacterial Analysis</h1>
+                <p class="subtitle">Analyze bacterial isolates using CGE's pipeline.</p>
             </div>
-
-            <div class="input-group">
-                <label for="experimentName" class="input-label">Experiment Name</label>
-                <input type="text" id="experimentName" placeholder="Enter a unique name for this analysis">
-                <p id="nameWarning" class="warning-text"></p>
+            <div class="header-icon">
+                <i class="fas fa-bacteria"></i>
             </div>
         </div>
+    </div>
 
-        <!-- Control Section -->
-        <div class="control-section">
-            <div class="button-group">
-                <button id="beginAnalysis" class="primary-button">
-                    Begin Analysis
+    <!-- File Input Section -->
+    <div class="input-section">
+        <div class="input-group">
+            <label for="fileInput" class="input-label">FastQ File</label>
+            <div class="file-input-wrapper">
+                <input type="file" id="fileInput" accept=".fastq,.fastq.gz,.fq,.fq.gz">
+            </div>
+            <p id="fileSizeWarning" class="warning-text"></p>
+        </div>
+
+        <div class="input-group">
+            <label for="experimentName" class="input-label">Experiment Name</label>
+            <input type="text" id="experimentName" placeholder="Enter a unique name for this analysis">
+            <p id="nameWarning" class="warning-text"></p>
+        </div>
+    </div>
+
+    <!-- Control Section -->
+    <div class="control-section">
+        <div class="button-group">
+            <button id="beginAnalysis" class="primary-button">
+                Begin Analysis
+            </button>
+        </div>
+    </div>
+
+    <!-- Analysis Output Section -->
+    <div class="output-section">
+        <div class="output-container">
+            <div class="output-header">
+                <h3>Analysis Progress</h3>
+                <p id="statusMessage" class="status-message">Waiting to start analysis...</p>
+            </div>
+            <pre id="output" class="terminal-output"></pre>
+            <div class="control-buttons">
+                <button id="cancelAnalysis" class="danger-button" style="display: none;">
+                    Cancel Analysis
                 </button>
             </div>
         </div>
 
-        <!-- Analysis Output Section -->
-        <div class="output-section">
-            <div class="output-container">
-                <div class="output-header">
-                    <h3>Analysis Progress</h3>
-                    <p id="statusMessage" class="status-message">Waiting to start analysis...</p>
-                </div>
-                <pre id="output" class="terminal-output"></pre>
-                <div class="control-buttons">
-                    <button id="cancelAnalysis" class="danger-button" style="display: none;">
-                        Cancel Analysis
-                    </button>
-                </div>
-            </div>
-
-            <!-- Loading Indicator -->
-            <div id="loadingSpinner" class="spinner-container" style="display:none;">
-                <div class="spinner"></div>
-                <p class="spinner-text">Analysis in progress...</p>
-            </div>
+        <!-- Loading Indicator -->
+        <div id="loadingSpinner" class="spinner-container" style="display:none;">
+            <div class="spinner"></div>
+            <p class="spinner-text">Analysis in progress...</p>
         </div>
+    </div>
 
-        <!-- Results Section -->
-        <div id="resultButtons" class="results-section" style="display:none;">
-            <h3>Analysis Complete</h3>
-            <div class="result-buttons">
-                <button id="openResults" class="secondary-button">
-                    <span class="button-icon">📁</span>
-                    Open Results Folder
-                </button>
-                <button id="openPdf" class="secondary-button">
-                    <span class="button-icon">📄</span>
-                    View PDF Report
-                </button>
-                <button id="openText" class="secondary-button">
-                    <span class="button-icon">📝</span>
-                    View Text Report
-                </button>
-            </div>
+    <!-- Results Section -->
+    <div id="resultButtons" class="results-section" style="display:none;">
+        <h3>Analysis Complete</h3>
+        <div class="result-buttons">
+            <button id="openResults" class="secondary-button">
+                <span class="button-icon">📁</span>
+                Open Results Folder
+            </button>
+            <button id="openPdf" class="secondary-button">
+                <span class="button-icon">📄</span>
+                View PDF Report
+            </button>
+            <button id="openText" class="secondary-button">
+                <span class="button-icon">📝</span>
+                View Text Report
+            </button>
         </div>
+    </div>
 
-        <!-- Info Section -->
-        <div class="info-section">
-            <div class="info-box">
-                <h4>About This Analysis</h4>
-                <p>This bacterial analysis pipeline includes:</p>
-                <ul>
-                    <li>Species identification</li>
-                    <li>Antimicrobial resistance (AMR) gene detection</li>
-                    <li>Virulence factor analysis</li>
-                    <li>Plasmid identification</li>
-                    <li>MLST typing</li>
-                </ul>
-            </div>
+    <!-- Info Section -->
+    <div class="info-section">
+        <div class="info-box">
+            <h4>About This Analysis</h4>
+            <p>This bacterial analysis pipeline includes:</p>
+            <ul>
+                <li>Species identification</li>
+                <li>Antimicrobial resistance (AMR) gene detection</li>
+                <li>Virulence factor analysis</li>
+                <li>Plasmid identification</li>
+                <li>MLST typing</li>
+            </ul>
         </div>
     </div>
 

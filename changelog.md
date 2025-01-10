@@ -1,5 +1,21 @@
 # Changelog
 
+## [1.1.1] - 2025-01-10
+### Enhanced
+
+- Results Page
+  - Added sortable table columns (Name, Tool Type, Date)
+  - Implemented 24-hour clock format for timestamps
+  - Added chronological sorting (newest first by default)
+  - Improved sort indicators with directional arrows
+
+
+
+### Changed
+
+- Bacteria Page
+  - Streamlined UI with removal of card container
+
 ## [1.1.0] - 2025-01-09
 
 ### Added
