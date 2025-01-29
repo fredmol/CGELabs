@@ -1,5 +1,17 @@
 # Changelog
 
+## [1.1.3] - 2025-01-29
+### Enhanced
+- Virus Analysis Page
+  - Updated layout to match bacteria and metagenomics pages
+  - Added file size warning system
+  - Added experiment name validation
+  - Added cancel analysis functionality
+  - Added results handling with PDF and text report viewing
+  - Added virus-specific info section
+  - Improved real-time output display
+  - Enhanced error handling and user feedback
+
 ## [1.1.2] - 2025-01-10
 ### Added
 - Metagenomics Page

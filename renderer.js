@@ -575,48 +575,178 @@ function setupBacteriaPage() {
  * Sets up the virus analysis page
  */
 function setupVirusPage() {
+    // Remove any existing listeners first
+    ipcRenderer.removeAllListeners('virus-command-output');
+    ipcRenderer.removeAllListeners('virus-complete-success');
+    ipcRenderer.removeAllListeners('virus-complete-failure');
+
     const beginAnalysisButton = document.getElementById('beginVirusAnalysis');
     const fileInput = document.getElementById('virusFileInput');
     const experimentNameInput = document.getElementById('virusExperimentName');
     const outputElement = document.getElementById('virusOutput');
     const spinner = document.getElementById('loadingSpinner');
     const statusMessage = document.getElementById('statusMessage');
+    const resultButtons = document.getElementById('resultButtons');
+    const openResults = document.getElementById('openResults');
+    const openPdf = document.getElementById('openPdf');
+    const openText = document.getElementById('openText');
+    const cancelButton = document.getElementById('cancelAnalysis');
+    const nameWarning = document.getElementById('nameWarning');
 
+    // Check for existing folder on experiment name change
+    if (experimentNameInput) {
+        experimentNameInput.addEventListener('input', () => {
+            const name = experimentNameInput.value;
+            const validation = validateExperimentName(name);
+            const folderPath = path.join('/var/lib/cge_test/results', name);
+            
+            if (!validation.isValid) {
+                nameWarning.textContent = validation.message;
+                nameWarning.style.display = 'block';
+                nameWarning.style.color = '#e74c3c';  // Red color for warning
+                beginAnalysisButton.disabled = true;
+            } else if (name && fs.existsSync(folderPath)) {
+                nameWarning.textContent = 'A folder with this name already exists. Please choose a different name.';
+                nameWarning.style.display = 'block';
+                nameWarning.style.color = '#e74c3c';
+                beginAnalysisButton.disabled = true;
+            } else {
+                nameWarning.style.display = 'none';
+                beginAnalysisButton.disabled = false;
+            }
+        });
+    }
+
+    // File size check
+    if (fileInput) {
+        const fileSizeWarning = document.getElementById('fileSizeWarning');
+        fileInput.addEventListener('change', async () => {
+            if (fileInput.files[0]) {
+                const result = await ipcRenderer.invoke('check-file-size', fileInput.files[0].path);
+                if (result.warning) {
+                    fileSizeWarning.textContent = result.message;
+                    fileSizeWarning.style.display = 'block';
+                    fileSizeWarning.style.color = '#e74c3c';  // Red warning color
+                    statusMessage.textContent = 'Warning: File size issue detected';
+                    statusMessage.style.color = '#e74c3c';
+                } else {
+                    fileSizeWarning.style.display = 'none';
+                    statusMessage.textContent = 'Ready to start analysis...';
+                    statusMessage.style.color = '';
+                }
+            } else {
+                fileSizeWarning.style.display = 'none';
+            }
+        });
+    }
+
+    // Restore previous output if it exists
+    const experimentName = experimentNameInput ? experimentNameInput.value : '';
+    if (outputElement && outputHistory[experimentName]) {
+        outputElement.textContent = outputHistory[experimentName];
+    }
+
+    // Begin analysis button handler
     if (beginAnalysisButton) {
         beginAnalysisButton.addEventListener('click', () => {
-            const filePath = fileInput.files[0].path;
+            const filePath = fileInput.files[0]?.path;
             const experimentName = experimentNameInput.value;
 
             if (filePath && experimentName) {
+                if (resultButtons) {
+                    resultButtons.style.display = 'none';
+                }
+                outputHistory[experimentName] = '';
+                outputElement.textContent = '';
+                currentProcess = experimentName;
+                cancelButton.style.display = 'block';
                 ipcRenderer.send('run-virus-command', filePath, experimentName);
                 spinner.style.display = 'block';
-                statusMessage.textContent = 'Virus analysis running... Please wait.';
+                statusMessage.textContent = 'Analyzing... Please wait.';
             } else {
                 console.log("File or experiment name not provided");
             }
         });
+    }
 
-        ipcRenderer.on('virus-command-output', (event, { stdout, stderr }) => {
-            if (outputElement) {
-                if (stdout) {
-                    outputElement.textContent += stdout + '\n';
-                }
-                if (stderr) {
-                    outputElement.textContent += stderr + '\n';
-                }
-                scrollToBottom(outputElement);
+    // Cancel analysis button handler
+    if (cancelButton) {
+        cancelButton.addEventListener('click', () => {
+            if (currentProcess) {
+                const folderPath = path.join('/var/lib/cge_test/results', currentProcess);
+                ipcRenderer.send('cancel-analysis', currentProcess, folderPath);
+                cancelButton.style.display = 'none';
+                spinner.style.display = 'none';
+                statusMessage.textContent = 'Analysis cancelled.';
             }
         });
+    }
 
-        ipcRenderer.on('virus-complete-success', () => {
-            spinner.style.display = 'none';
-            statusMessage.textContent = 'Virus analysis completed successfully. View results in the Results section.';
+    // Results buttons handlers
+    if (openResults) {
+        openResults.addEventListener('click', () => {
+            const experimentName = experimentNameInput.value;
+            const folderPath = path.join('/var/lib/cge_test/results', experimentName);
+            ipcRenderer.send('open-results-directory', folderPath);
         });
+    }
 
-        ipcRenderer.on('virus-complete-failure', (event, errorMessage) => {
-            spinner.style.display = 'none';
-            statusMessage.textContent = 'Virus analysis failed. Check the console for details.';
+    if (openPdf) {
+        openPdf.addEventListener('click', () => {
+            const experimentName = experimentNameInput.value;
+            const pdfPath = path.join('/var/lib/cge_test/results', experimentName, `${experimentName}_report.pdf`);
+            ipcRenderer.send('show-pdf', pdfPath);
         });
+    }
+
+    if (openText) {
+        openText.addEventListener('click', () => {
+            const experimentName = experimentNameInput.value;
+            const textPath = path.join('/var/lib/cge_test/results', experimentName, 'report.txt');
+            ipcRenderer.send('open-file', textPath);
+        });
+    }
+
+    // Event listeners for command output and completion
+    ipcRenderer.on('virus-command-output', (event, { stdout, stderr }) => {
+        if (outputElement && currentProcess) {
+            if (stdout) {
+                outputHistory[currentProcess] = outputHistory[currentProcess] || '';
+                outputHistory[currentProcess] += stdout + '\n';
+                outputElement.textContent = outputHistory[currentProcess];
+            }
+            if (stderr) {
+                outputHistory[currentProcess] = outputHistory[currentProcess] || '';
+                outputHistory[currentProcess] += stderr + '\n';
+                outputElement.textContent = outputHistory[currentProcess];
+            }
+            scrollToBottom(outputElement);
+        }
+    });
+
+    ipcRenderer.on('virus-complete-success', () => {
+        spinner.style.display = 'none';
+        cancelButton.style.display = 'none';
+        statusMessage.textContent = 'Analysis completed successfully. View results in the Results section.';
+        if (resultButtons) {
+            resultButtons.style.display = 'block';
+        }
+        currentProcess = null;
+    });
+
+    ipcRenderer.on('virus-complete-failure', (event, errorMessage) => {
+        spinner.style.display = 'none';
+        cancelButton.style.display = 'none';
+        statusMessage.textContent = 'Analysis failed. Check the console for details.';
+        if (resultButtons) {
+            resultButtons.style.display = 'none';
+        }
+        currentProcess = null;
+    });
+
+    // Save page state if needed
+    if (currentPage === 'virus') {
+        savePageState('virus');
     }
 }
 

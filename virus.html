@@ -1,26 +1,102 @@
 <!DOCTYPE html>
-<html>
+<html lang="en">
 <head>
-    <title>Virus Analysis</title>
+    <meta charset="UTF-8">
+    <title>Virus Analysis - CGELabs</title>
     <link rel="stylesheet" type="text/css" href="styles.css">
-    <!-- Include any additional head elements here -->
 </head>
 <body>
-    <div>
-        <h1>Virus Analysis</h1>
-        <p>Select a FastQ file and enter the experiment name to begin virus analysis.</p>
-        <input type="file" id="virusFileInput" accept=".fastq,.fastq.gz,.fq,.fq.gz"><br><br>
-        <input type="text" id="virusExperimentName" placeholder="Enter experiment name"><br><br>
-        <button id="beginVirusAnalysis">Begin Analysis</button>
-        <pre id="virusOutput"></pre>
+    <div class="header-section">
+        <div class="header-content">
+            <div class="header-text">
+                <h1>Virus Analysis</h1>
+                <p class="subtitle">Analyze viral samples using CGE's pipeline.</p>
+            </div>
+            <div class="header-icon">
+                <i class="fas fa-virus"></i>
+            </div>
+        </div>
     </div>
 
-    <div id="loadingSpinner" style="display:none; margin-top: 20px;">
-        <div class="spinner"></div>
-    </div>
-    <p id="statusMessage">Waiting to start analysis...</p>
+    <!-- File Input Section -->
+    <div class="input-section">
+        <div class="input-group">
+            <label for="virusFileInput" class="input-label">FastQ File</label>
+            <div class="file-input-wrapper">
+                <input type="file" id="virusFileInput" accept=".fastq,.fastq.gz,.fq,.fq.gz">
+            </div>
+            <p id="fileSizeWarning" class="warning-text"></p>
+        </div>
 
-    <!-- Include any additional scripts or HTML content -->
+        <div class="input-group">
+            <label for="virusExperimentName" class="input-label">Experiment Name</label>
+            <input type="text" id="virusExperimentName" placeholder="Enter a unique name for this analysis">
+            <p id="nameWarning" class="warning-text"></p>
+        </div>
+    </div>
+
+    <!-- Control Section -->
+    <div class="control-section">
+        <div class="button-group">
+            <button id="beginVirusAnalysis" class="primary-button">
+                Begin Analysis
+            </button>
+        </div>
+    </div>
+
+    <!-- Analysis Output Section -->
+    <div class="output-section">
+        <div class="output-container">
+            <div class="output-header">
+                <h3>Analysis Progress</h3>
+                <p id="statusMessage" class="status-message">Waiting to start analysis...</p>
+            </div>
+            <pre id="virusOutput" class="terminal-output"></pre>
+            <div class="control-buttons">
+                <button id="cancelAnalysis" class="danger-button" style="display: none;">
+                    Cancel Analysis
+                </button>
+            </div>
+        </div>
+
+        <!-- Loading Indicator -->
+        <div id="loadingSpinner" class="spinner-container" style="display:none;">
+            <div class="spinner"></div>
+            <p class="spinner-text">Analysis in progress...</p>
+        </div>
+    </div>
+
+    <!-- Results Section -->
+    <div id="resultButtons" class="results-section" style="display:none;">
+        <h3>Analysis Complete</h3>
+        <div class="result-buttons">
+            <button id="openResults" class="secondary-button">
+                <span class="button-icon">📁</span>
+                Open Results Folder
+            </button>
+            <button id="openPdf" class="secondary-button">
+                <span class="button-icon">📄</span>
+                View PDF Report
+            </button>
+            <button id="openText" class="secondary-button">
+                <span class="button-icon">📝</span>
+                View Text Report
+            </button>
+        </div>
+    </div>
+
+    <!-- Info Section -->
+    <div class="info-section">
+        <div class="info-box">
+            <h4>About This Analysis</h4>
+            <p>This viral analysis pipeline includes:</p>
+            <ul>
+                <li>Virus identification and typing</li>
+                <li>Variant detection and analysis</li>
+            </ul>
+        </div>
+    </div>
+
     <script src="renderer.js"></script>
 </body>
 </html>
