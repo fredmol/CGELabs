@@ -472,7 +472,8 @@ function setupBacteriaPage() {
         beginAnalysisButton.addEventListener('click', () => {
             const filePath = fileInput.files[0]?.path;
             const experimentName = experimentNameInput.value;
-
+            const enableQC = document.getElementById('enableQC')?.checked ?? true;
+    
             if (filePath && experimentName) {
                 if (resultButtons) {
                     resultButtons.style.display = 'none';
@@ -481,9 +482,11 @@ function setupBacteriaPage() {
                 outputElement.textContent = '';
                 currentProcess = experimentName;
                 cancelButton.style.display = 'block';
-                ipcRenderer.send('run-isolate-command', filePath, experimentName);
+                ipcRenderer.send('run-isolate-command', filePath, experimentName, enableQC);
                 spinner.style.display = 'block';
-                statusMessage.textContent = 'Analyzing... Please wait.';
+                statusMessage.textContent = enableQC ? 
+                    'Running QC and analysis... Please wait.' : 
+                    'Analyzing... Please wait.';
             } else {
                 console.log("File or experiment name not provided");
             }
@@ -651,7 +654,8 @@ function setupVirusPage() {
         beginAnalysisButton.addEventListener('click', () => {
             const filePath = fileInput.files[0]?.path;
             const experimentName = experimentNameInput.value;
-
+            const enableQC = document.getElementById('enableVirusQC')?.checked ?? true;
+    
             if (filePath && experimentName) {
                 if (resultButtons) {
                     resultButtons.style.display = 'none';
@@ -660,9 +664,11 @@ function setupVirusPage() {
                 outputElement.textContent = '';
                 currentProcess = experimentName;
                 cancelButton.style.display = 'block';
-                ipcRenderer.send('run-virus-command', filePath, experimentName);
+                ipcRenderer.send('run-virus-command', filePath, experimentName, enableQC);
                 spinner.style.display = 'block';
-                statusMessage.textContent = 'Analyzing... Please wait.';
+                statusMessage.textContent = enableQC ? 
+                    'Running QC and analysis... Please wait.' : 
+                    'Analyzing... Please wait.';
             } else {
                 console.log("File or experiment name not provided");
             }
@@ -830,7 +836,8 @@ function setupMetagenomicsPage() {
         beginAnalysisButton.addEventListener('click', () => {
             const filePath = fileInput.files[0]?.path;
             const experimentName = experimentNameInput.value;
-
+            const enableQC = document.getElementById('enableMetagenomicsQC')?.checked ?? true;
+    
             if (filePath && experimentName) {
                 if (resultButtons) {
                     resultButtons.style.display = 'none';
@@ -839,9 +846,11 @@ function setupMetagenomicsPage() {
                 outputElement.textContent = '';
                 currentProcess = experimentName;
                 cancelButton.style.display = 'block';
-                ipcRenderer.send('run-metagenomics-command', filePath, experimentName);
+                ipcRenderer.send('run-metagenomics-command', filePath, experimentName, enableQC);
                 spinner.style.display = 'block';
-                statusMessage.textContent = 'Analyzing... Please wait.';
+                statusMessage.textContent = enableQC ? 
+                    'Running QC and analysis... Please wait.' : 
+                    'Analyzing... Please wait.';
             } else {
                 console.log("File or experiment name not provided");
             }

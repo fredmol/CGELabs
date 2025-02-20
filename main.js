@@ -92,6 +92,82 @@ function isValidFilePath(filePath) {
 }
 
 // ============================================================================
+// Quality Control Function
+// ============================================================================
+function runQC(filePath, experimentName) {
+    return new Promise((resolve, reject) => {
+        const homeDirectory = os.homedir();
+        const condaPath = `${homeDirectory}/anaconda3/bin/conda`;
+        
+        // Create QC directory within results
+        const qcDir = path.join(resultsDirectory, experimentName, 'qc');
+        try {
+            fs.mkdirSync(qcDir, { recursive: true });
+        } catch (error) {
+            console.error(`Error creating QC directory: ${error}`);
+            reject(error);
+            return;
+        }
+
+        const args = [
+            'run',
+            '-n', 'cgeqc_env',
+            '--no-capture-output',
+            'cgeqc',
+            '-i', filePath,
+            '-o', qcDir,
+            '-n', experimentName
+        ];
+        
+        const process = spawn(condaPath, args);
+        // Store process globally for cancellation
+        global[`qc_process_${experimentName}`] = process;
+        
+        let stdout = '';
+        let stderr = '';
+
+        process.stdout.on('data', (data) => {
+            stdout += data.toString();
+        });
+
+        process.stderr.on('data', (data) => {
+            stderr += data.toString();
+        });
+
+        process.on('close', (code) => {
+            // Clean up process reference
+            delete global[`qc_process_${experimentName}`];
+            
+            if (code === 0) {
+                // Find the trimmed file in the QC directory
+                try {
+                    const files = fs.readdirSync(qcDir);
+                    const trimmedFile = files.find(file => file.includes('trimmed') && (file.endsWith('.fastq') || file.endsWith('.fastq.gz')));
+                    if (trimmedFile) {
+                        const trimmedFilePath = path.join(qcDir, trimmedFile);
+                        resolve({
+                            success: true,
+                            trimmedFilePath: trimmedFilePath,
+                            qcOutput: stdout
+                        });
+                    } else {
+                        console.error('No trimmed file found in QC directory');
+                        reject(new Error('No trimmed file found'));
+                    }
+                } catch (error) {
+                    console.error(`Error finding trimmed file: ${error}`);
+                    reject(error);
+                }
+            } else {
+                console.error(`QC process exited with code ${code}`);
+                reject(new Error(`QC process exited with code ${code}. Error: ${stderr}`));
+            }
+        });
+    });
+}
+
+
+// ============================================================================
 // Metadata Management
 // ============================================================================
 function saveToolMetadata(experimentName, toolName) {
@@ -242,17 +318,26 @@ ipcMain.handle('open-results-directory', () => {
 
 ipcMain.on('cancel-analysis', (event, experimentName, folderPath) => {
     const processKey = `process_${experimentName}`;
+    const qcProcessKey = `qc_process_${experimentName}`;
+    
+    // Kill QC process if exists
+    if (global[qcProcessKey]) {
+        global[qcProcessKey].kill();
+        delete global[qcProcessKey];
+    }
+    
+    // Kill analysis process if exists
     if (global[processKey]) {
         global[processKey].kill();
         delete global[processKey];
-        
-        // Delete the output folder if it exists
-        if (folderPath && path.resolve(folderPath).startsWith('/var/lib/cge_test/results')) {
-            try {
-                fs.rmSync(folderPath, { recursive: true, force: true });
-            } catch (error) {
-                console.error('Error deleting folder:', error);
-            }
+    }
+    
+    // Delete the output folder if it exists
+    if (folderPath && path.resolve(folderPath).startsWith('/var/lib/cge_test/results')) {
+        try {
+            fs.rmSync(folderPath, { recursive: true, force: true });
+        } catch (error) {
+            console.error('Error deleting folder:', error);
         }
     }
 });
@@ -287,16 +372,67 @@ ipcMain.handle('check-file-size', (event, filePath) => {
 // ============================================================================
 // Analysis Command Handlers
 // ============================================================================
-ipcMain.on('run-isolate-command', (event, filePath, experimentName) => {
-    runAnalysisCommand('cgeisolate', filePath, experimentName, event, 'isolate');
+ipcMain.on('run-isolate-command', (event, filePath, experimentName, enableQC) => {
+    if (enableQC) {
+        event.sender.send('isolate-command-output', { stdout: 'Starting Quality Control...\n' });
+        runQC(filePath, experimentName)
+            .then(result => {
+                event.sender.send('isolate-command-output', { stdout: 'QC completed successfully.\n' });
+                event.sender.send('isolate-command-output', { stdout: `Using trimmed file: ${result.trimmedFilePath}\n` });
+                event.sender.send('isolate-command-output', { stdout: 'Starting bacterial analysis...\n' });
+                runAnalysisCommand('cgeisolate', result.trimmedFilePath, experimentName, event, 'isolate');
+            })
+            .catch(error => {
+                event.sender.send('isolate-command-output', { stderr: `QC failed: ${error.message}\n` });
+                event.sender.send('isolate-command-output', { stdout: 'Falling back to original file for analysis...\n' });
+                runAnalysisCommand('cgeisolate', filePath, experimentName, event, 'isolate');
+            });
+    } else {
+        event.sender.send('isolate-command-output', { stdout: 'Skipping Quality Control as per user choice.\n' });
+        runAnalysisCommand('cgeisolate', filePath, experimentName, event, 'isolate');
+    }
 });
 
-ipcMain.on('run-virus-command', (event, filePath, experimentName) => {
-    runAnalysisCommand('cgevirus', filePath, experimentName, event, 'virus');
+ipcMain.on('run-virus-command', (event, filePath, experimentName, enableQC) => {
+    if (enableQC) {
+        event.sender.send('virus-command-output', { stdout: 'Starting Quality Control...\n' });
+        runQC(filePath, experimentName)
+            .then(result => {
+                event.sender.send('virus-command-output', { stdout: 'QC completed successfully.\n' });
+                event.sender.send('virus-command-output', { stdout: `Using trimmed file: ${result.trimmedFilePath}\n` });
+                event.sender.send('virus-command-output', { stdout: 'Starting virus analysis...\n' });
+                runAnalysisCommand('cgevirus', result.trimmedFilePath, experimentName, event, 'virus');
+            })
+            .catch(error => {
+                event.sender.send('virus-command-output', { stderr: `QC failed: ${error.message}\n` });
+                event.sender.send('virus-command-output', { stdout: 'Falling back to original file for analysis...\n' });
+                runAnalysisCommand('cgevirus', filePath, experimentName, event, 'virus');
+            });
+    } else {
+        event.sender.send('virus-command-output', { stdout: 'Skipping Quality Control as per user choice.\n' });
+        runAnalysisCommand('cgevirus', filePath, experimentName, event, 'virus');
+    }
 });
 
-ipcMain.on('run-metagenomics-command', (event, filePath, experimentName) => {
-    runAnalysisCommand('cgemetagenomics', filePath, experimentName, event, 'metagenomics');
+ipcMain.on('run-metagenomics-command', (event, filePath, experimentName, enableQC) => {
+    if (enableQC) {
+        event.sender.send('metagenomics-command-output', { stdout: 'Starting Quality Control...\n' });
+        runQC(filePath, experimentName)
+            .then(result => {
+                event.sender.send('metagenomics-command-output', { stdout: 'QC completed successfully.\n' });
+                event.sender.send('metagenomics-command-output', { stdout: `Using trimmed file: ${result.trimmedFilePath}\n` });
+                event.sender.send('metagenomics-command-output', { stdout: 'Starting metagenomics analysis...\n' });
+                runAnalysisCommand('cgemetagenomics', result.trimmedFilePath, experimentName, event, 'metagenomics');
+            })
+            .catch(error => {
+                event.sender.send('metagenomics-command-output', { stderr: `QC failed: ${error.message}\n` });
+                event.sender.send('metagenomics-command-output', { stdout: 'Falling back to original file for analysis...\n' });
+                runAnalysisCommand('cgemetagenomics', filePath, experimentName, event, 'metagenomics');
+            });
+    } else {
+        event.sender.send('metagenomics-command-output', { stdout: 'Skipping Quality Control as per user choice.\n' });
+        runAnalysisCommand('cgemetagenomics', filePath, experimentName, event, 'metagenomics');
+    }
 });
 
 ipcMain.on('run-merge-command', (event, filePath, experimentName) => {

@@ -1,5 +1,15 @@
 # Changelog
 
+
+## [1.2.0] - 2025-02-20
+### Added
+- Quality Control Integration
+  - Added pre-analysis QC step using cgeqc tool
+  - QC can be enabled/disabled via checkbox (enabled by default)
+  - Automatic handling of trimmed files for downstream analysis
+  - Real-time output display for QC process
+  - Enhanced error handling with fallback to original files
+
 ## [1.1.3] - 2025-01-29
 ### Enhanced
 - Virus Analysis Page

@@ -613,3 +613,24 @@ body.index-page .main-content {
     padding-right: 25px;
     white-space: nowrap;
 }
+
+
+
+/* Checkbox styling */
+.checkbox-wrapper {
+    display: flex;
+    align-items: center;
+    margin-bottom: 10px;
+}
+
+.checkbox-wrapper input[type="checkbox"] {
+    margin-right: 10px;
+    width: 18px;
+    height: 18px;
+    cursor: pointer;
+}
+
+.checkbox-wrapper label {
+    font-size: 14px;
+    cursor: pointer;
+}
