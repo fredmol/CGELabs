@@ -109,17 +109,12 @@ function runQC(filePath, experimentName) {
             return;
         }
 
-        const args = [
-            'run',
-            '-n', 'cgeqc_env',
-            '--no-capture-output',
-            'cgeqc',
+        const process = spawn('cgeqc', [
             '-i', filePath,
             '-o', qcDir,
             '-n', experimentName
-        ];
-        
-        const process = spawn(condaPath, args);
+        ]);
+
         // Store process globally for cancellation
         global[`qc_process_${experimentName}`] = process;
         
@@ -139,23 +134,24 @@ function runQC(filePath, experimentName) {
             delete global[`qc_process_${experimentName}`];
             
             if (code === 0) {
-                // Find the trimmed file in the QC directory
+                console.log(`Looking for output file in QC directory: ${qcDir}`);
+                // Find the QC file in the QC directory
                 try {
                     const files = fs.readdirSync(qcDir);
-                    const trimmedFile = files.find(file => file.includes('trimmed') && (file.endsWith('.fastq') || file.endsWith('.fastq.gz')));
-                    if (trimmedFile) {
-                        const trimmedFilePath = path.join(qcDir, trimmedFile);
+                    const qcFile = files.find(file => file.endsWith('.fq') || file.endsWith('.fq.gz'));
+                    if (qcFile) {
+                        const qcFilePath = path.join(qcDir, qcFile);
                         resolve({
                             success: true,
-                            trimmedFilePath: trimmedFilePath,
+                            trimmedFilePath: qcFilePath,
                             qcOutput: stdout
                         });
                     } else {
-                        console.error('No trimmed file found in QC directory');
-                        reject(new Error('No trimmed file found'));
+                        console.error('No QC file found in QC directory');
+                        reject(new Error('No QC file found'));
                     }
                 } catch (error) {
-                    console.error(`Error finding trimmed file: ${error}`);
+                    console.error(`Error finding QC file: ${error}`);
                     reject(error);
                 }
             } else {
@@ -163,6 +159,7 @@ function runQC(filePath, experimentName) {
                 reject(new Error(`QC process exited with code ${code}. Error: ${stderr}`));
             }
         });
+
     });
 }
 
@@ -476,7 +473,13 @@ function mergeCondaCommand(scriptName, filePath, experimentName, event, analysis
  */
 function runAnalysisCommand(scriptName, filePath, experimentName, event, analysisType) {
     const homeDirectory = os.homedir();
-    const condaPath = `${homeDirectory}/anaconda3/bin/conda`;
+    let condaPath;
+    if (global.process.platform === 'darwin') {  // Explicitly use global.process
+        // On macOS, use conda from the PATH
+        condaPath = 'conda';
+    } else {
+        condaPath = `${homeDirectory}/anaconda3/bin/conda`;
+    }
     
     // Buffer to store output until directory is ready
     let outputBuffer = [];
@@ -498,7 +501,6 @@ function runAnalysisCommand(scriptName, filePath, experimentName, event, analysi
 
     let args = [
         'run',
-        '-n', 'cge_env_test',
         '--no-capture-output',
         scriptName
     ];
@@ -510,6 +512,8 @@ function runAnalysisCommand(scriptName, filePath, experimentName, event, analysi
     }
     
     const process = spawn(condaPath, args);
+
+
     // Store process globally for cancellation
     global[`process_${experimentName}`] = process;
 
