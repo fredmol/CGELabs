@@ -551,7 +551,13 @@ function setupPdfViewer() {
 /**
  * Sets up the bacteria analysis page
  */
+/**
+ * Sets up the bacteria analysis page
+ */
 function setupBacteriaPage() {
+    // Initialize collapsible info panel
+    setupInfoPanel();
+    
     // Remove any existing listeners first
     ipcRenderer.removeAllListeners('isolate-command-output');
     ipcRenderer.removeAllListeners('isolate-complete-success');
@@ -569,6 +575,7 @@ function setupBacteriaPage() {
     const openText = document.getElementById('openText');
     const cancelButton = document.getElementById('cancelAnalysis');
     const nameWarning = document.getElementById('nameWarning');
+    const resultsCard = document.getElementById('resultsCard');
 
     // Setup QC settings toggle
     setupQcSettingsToggle('qcSettingsToggle', 'qcSettingsPanel');
@@ -681,10 +688,19 @@ function setupBacteriaPage() {
             const qcParams = enableQC ? getQcParams('') : {};
             
             if (filePath && experimentName) {
-                // Rest of the function...
+                // Update status to running
+                updateStatusIndicator('running', 'Analysis is currently running...');
+                
+                // Hide results card
+                if (resultsCard) {
+                    resultsCard.style.display = 'none';
+                }
+                
+                // Reset result buttons
                 if (resultButtons) {
                     resultButtons.style.display = 'none';
                 }
+                
                 outputHistory[experimentName] = '';
                 outputElement.textContent = '';
                 currentProcess = experimentName;
@@ -708,7 +724,7 @@ function setupBacteriaPage() {
                 ipcRenderer.send('cancel-analysis', currentProcess, folderPath);
                 cancelButton.style.display = 'none';
                 spinner.style.display = 'none';
-                statusMessage.textContent = 'Analysis cancelled.';
+                updateStatusIndicator('waiting', 'Analysis cancelled.');
             }
         });
     }
@@ -780,7 +796,10 @@ function setupBacteriaPage() {
     ipcRenderer.on('isolate-complete-success', () => {
         spinner.style.display = 'none';
         cancelButton.style.display = 'none';
-        statusMessage.textContent = 'Analysis completed successfully. View results in the Results section.';
+        updateStatusIndicator('success', 'Analysis completed successfully.');
+        if (resultsCard) {
+            resultsCard.style.display = 'block';
+        }
         if (resultButtons) {
             resultButtons.style.display = 'block';
         }
@@ -790,7 +809,10 @@ function setupBacteriaPage() {
     ipcRenderer.on('isolate-complete-failure', (event, errorMessage) => {
         spinner.style.display = 'none';
         cancelButton.style.display = 'none';
-        statusMessage.textContent = 'Analysis failed. Check the console for details.';
+        updateStatusIndicator('error', 'Analysis failed. Check the console for details.');
+        if (resultsCard) {
+            resultsCard.style.display = 'none';
+        }
         if (resultButtons) {
             resultButtons.style.display = 'none';
         }
@@ -803,10 +825,14 @@ function setupBacteriaPage() {
     }
 }
 
+
 /**
  * Sets up the virus analysis page
  */
 function setupVirusPage() {
+    // Initialize collapsible info panel
+    setupInfoPanel();
+    
     // Remove any existing listeners first
     ipcRenderer.removeAllListeners('virus-command-output');
     ipcRenderer.removeAllListeners('virus-complete-success');
@@ -824,6 +850,7 @@ function setupVirusPage() {
     const openText = document.getElementById('openText');
     const cancelButton = document.getElementById('cancelAnalysis');
     const nameWarning = document.getElementById('nameWarning');
+    const resultsCard = document.getElementById('resultsCard');
 
     // Setup collapsible console
     setupCollapsibleConsole('virusConsoleHeader', 'virusConsoleBody', 'virusConsoleToggle', 'virusConsoleStatus', 'virusOutput');
@@ -895,6 +922,14 @@ function setupVirusPage() {
             const qcParams = enableQC ? getQcParams('virus') : {};
 
             if (filePath && experimentName) {
+                // Update status to running
+                updateStatusIndicator('running', 'Analysis is currently running...');
+                
+                // Hide results card
+                if (resultsCard) {
+                    resultsCard.style.display = 'none';
+                }
+                
                 if (resultButtons) {
                     resultButtons.style.display = 'none';
                 }
@@ -921,7 +956,7 @@ function setupVirusPage() {
                 ipcRenderer.send('cancel-analysis', currentProcess, folderPath);
                 cancelButton.style.display = 'none';
                 spinner.style.display = 'none';
-                statusMessage.textContent = 'Analysis cancelled.';
+                updateStatusIndicator('waiting', 'Analysis cancelled.');
             }
         });
     }
@@ -994,7 +1029,10 @@ function setupVirusPage() {
     ipcRenderer.on('virus-complete-success', () => {
         spinner.style.display = 'none';
         cancelButton.style.display = 'none';
-        statusMessage.textContent = 'Analysis completed successfully. View results in the Results section.';
+        updateStatusIndicator('success', 'Analysis completed successfully.');
+        if (resultsCard) {
+            resultsCard.style.display = 'block';
+        }
         if (resultButtons) {
             resultButtons.style.display = 'block';
         }
@@ -1004,7 +1042,10 @@ function setupVirusPage() {
     ipcRenderer.on('virus-complete-failure', (event, errorMessage) => {
         spinner.style.display = 'none';
         cancelButton.style.display = 'none';
-        statusMessage.textContent = 'Analysis failed. Check the console for details.';
+        updateStatusIndicator('error', 'Analysis failed. Check the console for details.');
+        if (resultsCard) {
+            resultsCard.style.display = 'none';
+        }
         if (resultButtons) {
             resultButtons.style.display = 'none';
         }
@@ -1021,6 +1062,9 @@ function setupVirusPage() {
  * Sets up the metagenomics analysis page
  */
 function setupMetagenomicsPage() {
+    // Initialize collapsible info panel
+    setupInfoPanel();
+    
     // Remove any existing listeners first
     ipcRenderer.removeAllListeners('metagenomics-command-output');
     ipcRenderer.removeAllListeners('metagenomics-complete-success');
@@ -1038,6 +1082,7 @@ function setupMetagenomicsPage() {
     const openText = document.getElementById('openText');
     const cancelButton = document.getElementById('cancelAnalysis');
     const nameWarning = document.getElementById('nameWarning');
+    const resultsCard = document.getElementById('resultsCard');
 
     // Setup collapsible console
     setupCollapsibleConsole('metaConsoleHeader', 'metaConsoleBody', 'metaConsoleToggle', 'metaConsoleStatus', 'metagenomicsOutput');
@@ -1109,6 +1154,14 @@ function setupMetagenomicsPage() {
             const qcParams = enableQC ? getQcParams('meta') : {};
 
             if (filePath && experimentName) {
+                // Update status to running
+                updateStatusIndicator('running', 'Analysis is currently running...');
+                
+                // Hide results card
+                if (resultsCard) {
+                    resultsCard.style.display = 'none';
+                }
+                
                 if (resultButtons) {
                     resultButtons.style.display = 'none';
                 }
@@ -1135,7 +1188,7 @@ function setupMetagenomicsPage() {
                 ipcRenderer.send('cancel-analysis', currentProcess, folderPath);
                 cancelButton.style.display = 'none';
                 spinner.style.display = 'none';
-                statusMessage.textContent = 'Analysis cancelled.';
+                updateStatusIndicator('waiting', 'Analysis cancelled.');
             }
         });
     }
@@ -1208,7 +1261,10 @@ function setupMetagenomicsPage() {
     ipcRenderer.on('metagenomics-complete-success', () => {
         spinner.style.display = 'none';
         cancelButton.style.display = 'none';
-        statusMessage.textContent = 'Analysis completed successfully. View results in the Results section.';
+        updateStatusIndicator('success', 'Analysis completed successfully.');
+        if (resultsCard) {
+            resultsCard.style.display = 'block';
+        }
         if (resultButtons) {
             resultButtons.style.display = 'block';
         }
@@ -1218,7 +1274,10 @@ function setupMetagenomicsPage() {
     ipcRenderer.on('metagenomics-complete-failure', (event, errorMessage) => {
         spinner.style.display = 'none';
         cancelButton.style.display = 'none';
-        statusMessage.textContent = 'Analysis failed. Check the console for details.';
+        updateStatusIndicator('error', 'Analysis failed. Check the console for details.');
+        if (resultsCard) {
+            resultsCard.style.display = 'none';
+        }
         if (resultButtons) {
             resultButtons.style.display = 'none';
         }
@@ -1228,6 +1287,90 @@ function setupMetagenomicsPage() {
     // Save page state if needed
     if (currentPage === 'metagenomics') {
         savePageState('metagenomics');
+    }
+}
+
+// ============================================================================
+// New design for bacteria, virus, isolate html
+// ============================================================================
+
+
+/**
+ * Sets up the collapsible info panel
+ */
+function setupInfoPanel() {
+    const infoToggle = document.getElementById('infoToggle');
+    const infoPanel = document.getElementById('infoPanel');
+    
+    if (infoToggle && infoPanel) {
+        infoToggle.addEventListener('click', () => {
+            infoToggle.classList.toggle('active');
+            infoPanel.classList.toggle('active');
+        });
+    }
+}
+
+/**
+ * Updates the status indicator based on current state
+ */
+function updateStatusIndicator(state, message = null) {
+    const statusIndicator = document.getElementById('statusIndicator');
+    const statusTitle = statusIndicator ? statusIndicator.querySelector('.status-title') : null;
+    const statusIcon = statusIndicator ? statusIndicator.querySelector('.status-icon') : null;
+    const iconElement = statusIcon ? statusIcon.querySelector('i') : null;
+    
+    if (!statusIndicator || !statusTitle || !statusIcon || !iconElement) return;
+    
+    // Reset all classes
+    statusIcon.classList.remove('waiting', 'running', 'success', 'error');
+    
+    switch (state) {
+        case 'waiting':
+            statusTitle.textContent = 'Waiting to start';
+            statusIcon.classList.add('waiting');
+            iconElement.className = 'fas fa-clock';
+            break;
+        case 'running':
+            statusTitle.textContent = 'Analysis in progress';
+            statusIcon.classList.add('running');
+            iconElement.className = 'fas fa-sync-alt fa-spin';
+            break;
+        case 'success':
+            statusTitle.textContent = 'Analysis complete';
+            statusIcon.classList.add('success');
+            iconElement.className = 'fas fa-check-circle';
+            break;
+        case 'error':
+            statusTitle.textContent = 'Analysis failed';
+            statusIcon.classList.add('error');
+            iconElement.className = 'fas fa-exclamation-circle';
+            break;
+    }
+    
+    // If message is provided, update status message too
+    if (message) {
+        const statusMessageElement = document.getElementById('statusMessage');
+        if (statusMessageElement) {
+            statusMessageElement.textContent = message;
+        }
+        
+        // Also update console status with complementary information
+        const consoleStatus = document.getElementById('consoleStatus') || 
+                             document.getElementById('virusConsoleStatus') || 
+                             document.getElementById('metaConsoleStatus');
+        
+        if (consoleStatus) {
+            // Use different messages for console status to avoid duplication
+            if (state === 'success') {
+                consoleStatus.textContent = 'Process completed. Check console for details.';
+            } else if (state === 'error') {
+                consoleStatus.textContent = 'Error occurred. See console output for details.';
+            } else if (state === 'running') {
+                consoleStatus.textContent = 'Executing commands...';
+            } else {
+                consoleStatus.textContent = 'Waiting for analysis to start...';
+            }
+        }
     }
 }
 

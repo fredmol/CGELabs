@@ -36,17 +36,26 @@ let pdfWindow = null;
 // ============================================================================
 function createWindow() {
     const iconPath = path.join(__dirname, 'build/icons/logo_256.png');
+    
+    // Make the window 25% smaller
     const win = new BrowserWindow({
-        width: 1200,
-        height: 900,
-        title: 'CGELabs',  // Add this line
+        width: 960, // 75% of 1200
+        height: 720, // 75% of 900
+        title: 'CGELabs',
         webPreferences: {
             nodeIntegration: true,
             contextIsolation: false,
+            zoomFactor: 0.75, // Another way to set zoom factor
         },
         icon: iconPath,
     });
+    
     win.loadFile('index.html');
+    
+    // Try setting zoom after page has loaded
+    win.webContents.once('did-finish-load', () => {
+        win.webContents.setZoomFactor(0.80);
+    });
 }
 
 // Application lifecycle handlers

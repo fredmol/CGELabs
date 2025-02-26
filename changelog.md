@@ -1,5 +1,22 @@
 # Changelog
 
+## [1.3.0] - 2025-02-26
+### Added
+- Collapsible Information Panels
+  - Added "About This Analysis" section with expandable details
+
+### Enhanced
+- Complete UI Redesign
+  - Implemented card-based layout for better visual organization
+  - Created clearer separation between different functional sections
+  - Redesigned results section for improved clarity
+  - Reduced overall UI scale to 80% for better space utilization
+
+### Improved
+- Status Indicators
+  - Added dynamic status icons showing waiting/running/success/error states
+  - Improved visual feedback during analysis progress
+
 
 ## [1.2.2] - 2025-02-26
 ### Added

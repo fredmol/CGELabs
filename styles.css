@@ -8,6 +8,9 @@
    - PDF viewer
    ============================================================================= */
 
+
+
+
 /* -----------------------------------------------------------------------------
    Base Styles and Typography
    ----------------------------------------------------------------------------- */
@@ -710,7 +713,7 @@ body.index-page .main-content {
 /* -----------------------------------------------------------------------------
    Collapsible console
    ----------------------------------------------------------------------------- */
-   
+
 .console-container {
     margin-top: 20px;
     border-radius: 8px;
@@ -774,4 +777,402 @@ body.index-page .main-content {
     overflow-y: auto;
     height: 300px;
     border: none;
+}
+
+
+
+/* =============================================================================
+   Redesigned UI Components
+   ============================================================================= */
+
+.page-container {
+    max-width: 1000px;
+    margin: 0 auto;
+    padding: 20px 0;
+}
+
+/* Card-based layout */
+.header-card, .content-card {
+    background-color: white;
+    border-radius: 10px;
+    box-shadow: 0 2px 10px rgba(0, 0, 0, 0.05);
+    margin-bottom: 24px;
+    overflow: hidden;
+}
+
+.header-card {
+    position: relative;
+    padding: 24px;
+}
+
+.header-content {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.header-main {
+    flex: 1;
+}
+
+.header-main h1 {
+    margin-top: 0;
+    margin-bottom: 10px;
+    color: #2c3e50;
+    font-size: 28px;
+}
+
+.header-icon {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 70px;
+    height: 70px;
+    border-radius: 50%;
+    background-color: rgba(76, 175, 80, 0.1);
+    margin-left: 20px;
+}
+
+.header-icon i {
+    font-size: 32px;
+    color: #4CAF50;
+}
+
+/* Info panel */
+.info-toggle {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 12px 0;
+    margin-top: 16px;
+    border-top: 1px solid #eee;
+    cursor: pointer;
+    font-weight: 500;
+    color: #555;
+    transition: color 0.2s;
+}
+
+.info-toggle:hover {
+    color: #4CAF50;
+}
+
+.info-toggle i {
+    transition: transform 0.3s ease;
+}
+
+.info-toggle.active i {
+    transform: rotate(180deg);
+}
+
+.info-panel {
+    max-height: 0;
+    overflow: hidden;
+    transition: max-height 0.3s ease, opacity 0.3s ease, padding 0.3s ease;
+    opacity: 0;
+    padding: 0;
+}
+
+.info-panel.active {
+    max-height: 300px;
+    opacity: 1;
+    padding-top: 16px;
+}
+
+.info-panel p {
+    margin-top: 0;
+    margin-bottom: 10px;
+}
+
+.info-panel ul {
+    margin-top: 0;
+    padding-left: 24px;
+}
+
+.info-panel li {
+    margin-bottom: 6px;
+}
+
+/* Content cards */
+.content-card {
+    overflow: visible;
+}
+
+.card-title {
+    margin: 0;
+    padding: 16px 24px;
+    background-color: #f8f9fa;
+    border-bottom: 1px solid #eee;
+    color: #2c3e50;
+    font-size: 18px;
+    font-weight: 500;
+}
+
+.card-content {
+    padding: 24px;
+}
+
+/* Button row */
+.button-row {
+    display: flex;
+    gap: 12px;
+    margin-top: 24px;
+}
+
+/* Primary button with icon */
+.primary-button, .danger-button {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    min-width: 160px;
+    font-weight: 500;
+}
+
+.primary-button i, .danger-button i {
+    font-size: 18px;
+}
+
+/* Status panel */
+.status-panel {
+    background-color: #f8f9fa;
+    border-radius: 8px;
+    padding: 16px;
+    margin-bottom: 24px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.status-indicator {
+    display: flex;
+    align-items: center;
+    gap: 16px;
+}
+
+.status-icon {
+    width: 42px;
+    height: 42px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+}
+
+.status-icon.waiting {
+    background-color: #e9ecef;
+    color: #6c757d;
+}
+
+.status-icon.running {
+    background-color: #cce5ff;
+    color: #0d6efd;
+}
+
+.status-icon.success {
+    background-color: #d4edda;
+    color: #28a745;
+}
+
+.status-icon.error {
+    background-color: #f8d7da;
+    color: #dc3545;
+}
+
+.status-icon i {
+    font-size: 20px;
+}
+
+.status-details {
+    flex: 1;
+}
+
+.status-title {
+    margin: 0 0 4px 0;
+    font-size: 16px;
+    color: #333;
+}
+
+.status-message {
+    margin: 0;
+    color: #666;
+    font-size: 14px;
+}
+
+/* Console improvements */
+.console-container {
+    border-radius: 8px;
+    overflow: hidden;
+    border: 1px solid #ddd;
+    background-color: #1a1a1a;
+}
+
+.console-header {
+    background-color: #333;
+    color: white;
+    padding: 12px 16px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    cursor: pointer;
+}
+
+.console-toggle {
+    background: none;
+    border: 1px solid rgba(255, 255, 255, 0.2);
+    color: white;
+    padding: 4px 10px;
+    border-radius: 4px;
+    cursor: pointer;
+    transition: background-color 0.2s;
+    margin: 0;
+    box-shadow: none;
+}
+
+.console-toggle:hover {
+    background-color: rgba(255, 255, 255, 0.1);
+}
+
+/* Results buttons */
+.result-buttons {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+    gap: 16px;
+    width: 100%;
+}
+
+.result-button {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 10px;
+    background-color: white;
+    color: #333;
+    border: 1px solid #ddd;
+    border-radius: 8px;
+    padding: 16px;
+    transition: all 0.2s ease;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.05);
+    height: 100px;
+}
+
+.result-button:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+    border-color: #4CAF50;
+}
+
+.result-button i {
+    font-size: 24px;
+    color: #4CAF50;
+}
+
+.result-button span {
+    font-size: 14px;
+    text-align: center;
+}
+
+/* Make sure the spinner container doesn't influence layout when hidden */
+.spinner-container {
+    margin: 0;
+}
+
+/* Ensure output display remains consistent */
+.console-output {
+    padding: 16px;
+    min-height: 150px;
+    max-height: 300px;
+    overflow-y: auto;
+    font-family: 'Monaco', 'Consolas', monospace;
+    white-space: pre-wrap;
+    color: #00ff00;
+    font-size: 14px;
+    line-height: 1.5;
+}
+
+/* Ensure we show the console body when expanded */
+.console-body.expanded {
+    max-height: 300px;
+}
+
+
+
+/* Improve status panel spacing and layout */
+.status-panel {
+    background-color: #f8f9fa;
+    border-radius: 8px;
+    padding: 16px;
+    margin-bottom: 24px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.05);
+}
+
+/* Create better visual hierarchy */
+.status-indicator {
+    display: flex;
+    align-items: center;
+    gap: 16px;
+    width: 100%;
+}
+
+/* Make status icons more prominent */
+.status-icon {
+    width: 48px;
+    height: 48px;
+    min-width: 48px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+}
+
+/* Clearly separate status text from other elements */
+.status-details {
+    flex: 1;
+    overflow: hidden;
+}
+
+.status-title {
+    margin: 0 0 6px 0;
+    font-size: 18px;
+    font-weight: 600;
+    color: #333;
+}
+
+.status-message {
+    margin: 0;
+    color: #666;
+    font-size: 14px;
+    line-height: 1.5;
+    background: none;
+    padding: 0;
+    white-space: normal;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+/* Increase space between status panel and console */
+.console-container {
+    margin-top: 16px;
+    border: 1px solid #ddd;
+    border-radius: 8px;
+    overflow: hidden;
+}
+
+/* Make console header distinct from status panel */
+.console-header {
+    background-color: #333;
+    color: white;
+    padding: 10px 16px;
+    font-family: monospace;
+}
+
+/* Don't show status message when we're in success state */
+.status-icon.success + .status-details .status-message {
+    opacity: 0.8;
 }
