@@ -39,6 +39,41 @@
             <div class="checkbox-wrapper">
                 <input type="checkbox" id="enableQC" checked>
                 <label for="enableQC">Run QC before analysis (recommended)</label>
+                <button id="qcSettingsToggle" class="toggle-button">Advanced QC Settings</button>
+            </div>
+            <div id="qcSettingsPanel" class="settings-panel" style="display:none;">
+                <h4>QC Parameters</h4>
+                <div class="parameter-grid">
+                    <div class="parameter-item">
+                        <label for="minLength">Min Length:</label>
+                        <input type="number" id="minLength" placeholder="16">
+                    </div>
+                    <div class="parameter-item">
+                        <label for="maxLength">Max Length:</label>
+                        <input type="number" id="maxLength" placeholder="2147483647">
+                    </div>
+                    <div class="parameter-item">
+                        <label for="minPhred">Min Phred:</label>
+                        <input type="number" id="minPhred" placeholder="20">
+                    </div>
+                    <div class="parameter-item">
+                        <label for="minInternalPhred">Min Internal Phred:</label>
+                        <input type="number" id="minInternalPhred" placeholder="0">
+                    </div>
+                    <div class="parameter-item">
+                        <label for="minAverageQuality">Min Average Quality:</label>
+                        <input type="number" id="minAverageQuality" placeholder="10">
+                    </div>
+                    <div class="parameter-item">
+                        <label for="trim5Prime">Trim 5' End:</label>
+                        <input type="number" id="trim5Prime" placeholder="0">
+                    </div>
+                    <div class="parameter-item">
+                        <label for="trim3Prime">Trim 3' End:</label>
+                        <input type="number" id="trim3Prime" placeholder="0">
+                    </div>
+                </div>
+                <p class="settings-note">Leave empty to use default values. Values shown are the defaults.</p>
             </div>
         </div>
         

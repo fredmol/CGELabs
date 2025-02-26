@@ -39,6 +39,41 @@
             <div class="checkbox-wrapper">
                 <input type="checkbox" id="enableMetagenomicsQC" checked>
                 <label for="enableMetagenomicsQC">Run QC before analysis (recommended)</label>
+                <button id="metaQcSettingsToggle" class="toggle-button">Advanced QC Settings</button>
+            </div>
+            <div id="metaQcSettingsPanel" class="settings-panel" style="display:none;">
+                <h4>QC Parameters</h4>
+                <div class="parameter-grid">
+                    <div class="parameter-item">
+                        <label for="metaMinLength">Min Length:</label>
+                        <input type="number" id="metaMinLength" placeholder="16">
+                    </div>
+                    <div class="parameter-item">
+                        <label for="metaMaxLength">Max Length:</label>
+                        <input type="number" id="metaMaxLength" placeholder="2147483647">
+                    </div>
+                    <div class="parameter-item">
+                        <label for="metaMinPhred">Min Phred:</label>
+                        <input type="number" id="metaMinPhred" placeholder="20">
+                    </div>
+                    <div class="parameter-item">
+                        <label for="metaMinInternalPhred">Min Internal Phred:</label>
+                        <input type="number" id="metaMinInternalPhred" placeholder="0">
+                    </div>
+                    <div class="parameter-item">
+                        <label for="metaMinAverageQuality">Min Average Quality:</label>
+                        <input type="number" id="metaMinAverageQuality" placeholder="10">
+                    </div>
+                    <div class="parameter-item">
+                        <label for="metaTrim5Prime">Trim 5' End:</label>
+                        <input type="number" id="metaTrim5Prime" placeholder="0">
+                    </div>
+                    <div class="parameter-item">
+                        <label for="metaTrim3Prime">Trim 3' End:</label>
+                        <input type="number" id="metaTrim3Prime" placeholder="0">
+                    </div>
+                </div>
+                <p class="settings-note">Leave empty to use default values. Values shown are the defaults.</p>
             </div>
         </div>
         

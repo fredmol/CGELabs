@@ -75,6 +75,67 @@ function validateExperimentName(name) {
     return { isValid: true, message: '' };
 }
 
+
+
+
+// ============================================================================
+// QC parameter panel 
+// ============================================================================
+
+
+/**
+ * Toggles QC settings panel visibility
+ */
+function setupQcSettingsToggle(toggleButtonId, settingsPanelId) {
+    const toggleButton = document.getElementById(toggleButtonId);
+    const settingsPanel = document.getElementById(settingsPanelId);
+    
+    if (toggleButton && settingsPanel) {
+        toggleButton.addEventListener('click', () => {
+            if (settingsPanel.style.display === 'none') {
+                settingsPanel.style.display = 'block';
+                toggleButton.textContent = 'Hide QC Settings';
+            } else {
+                settingsPanel.style.display = 'none';
+                toggleButton.textContent = 'Advanced QC Settings';
+            }
+        });
+    }
+}
+
+/**
+ * Gets QC parameters from input fields
+ */
+function getQcParams(prefix = '') {
+    const params = {};
+    
+    // Helper function to get value from input
+    const getValue = (id) => {
+        const element = document.getElementById(id);
+        return element && element.value ? parseInt(element.value, 10) : null;
+    };
+    
+    // Get input fields with proper error handling
+    const fieldIds = {
+        minLength: `${prefix}minLength`,
+        maxLength: `${prefix}maxLength`,
+        minPhred: `${prefix}minPhred`,
+        minInternalPhred: `${prefix}minInternalPhred`,
+        minAverageQuality: `${prefix}minAverageQuality`,
+        trim5Prime: `${prefix}trim5Prime`,
+        trim3Prime: `${prefix}trim3Prime`
+    };
+    
+    // Process each field
+    Object.entries(fieldIds).forEach(([paramName, elementId]) => {
+        const value = getValue(elementId);
+        params[paramName] = value; // Assign even if null, for consistency
+    });
+    
+    return params;
+}
+
+
 // ============================================================================
 // Results Page Management
 // ============================================================================
@@ -414,6 +475,50 @@ function setupBacteriaPage() {
     const cancelButton = document.getElementById('cancelAnalysis');
     const nameWarning = document.getElementById('nameWarning');
 
+    // Setup QC settings toggle
+    setupQcSettingsToggle('qcSettingsToggle', 'qcSettingsPanel');
+
+    // Ensure QC fields are initialized with defaults
+    const initQcField = (id, defaultValue) => {
+        const field = document.getElementById(id);
+        if (field) {
+            field.placeholder = defaultValue.toString();
+            // Don't set value directly to allow user changes
+        }
+    };
+
+    // Initialize QC fields with bacterial defaults
+    initQcField('minLength', 16);
+    initQcField('maxLength', 2147483647);
+    initQcField('minPhred', 20);
+    initQcField('minInternalPhred', 0);
+    initQcField('minAverageQuality', 10);
+    initQcField('trim5Prime', 0);
+    initQcField('trim3Prime', 0);
+
+    // Add validation for numeric fields to provide immediate feedback
+    const qcNumericFields = [
+        'minLength', 'maxLength', 'minPhred', 
+        'minInternalPhred', 'minAverageQuality', 
+        'trim5Prime', 'trim3Prime'
+    ];
+
+    qcNumericFields.forEach(fieldId => {
+        const field = document.getElementById(fieldId);
+        if (field) {
+            field.addEventListener('input', (e) => {
+                // Only allow numeric input
+                const value = e.target.value.trim();
+                if (value !== '' && !/^\d+$/.test(value)) {
+                    e.target.setCustomValidity('Please enter a valid number');
+                    e.target.reportValidity();
+                } else {
+                    e.target.setCustomValidity('');
+                }
+            });
+        }
+    });
+
     // Check for existing folder and validate experiment name
     if (experimentNameInput) {
         experimentNameInput.addEventListener('input', () => {
@@ -473,8 +578,12 @@ function setupBacteriaPage() {
             const filePath = fileInput.files[0]?.path;
             const experimentName = experimentNameInput.value;
             const enableQC = document.getElementById('enableQC')?.checked ?? true;
-    
+            
+            // Get QC parameters if QC is enabled
+            const qcParams = enableQC ? getQcParams('') : {};
+            
             if (filePath && experimentName) {
+                // Rest of the function...
                 if (resultButtons) {
                     resultButtons.style.display = 'none';
                 }
@@ -482,7 +591,7 @@ function setupBacteriaPage() {
                 outputElement.textContent = '';
                 currentProcess = experimentName;
                 cancelButton.style.display = 'block';
-                ipcRenderer.send('run-isolate-command', filePath, experimentName, enableQC);
+                ipcRenderer.send('run-isolate-command', filePath, experimentName, enableQC, qcParams);
                 spinner.style.display = 'block';
                 statusMessage.textContent = enableQC ? 
                     'Running QC and analysis... Please wait.' : 
@@ -596,6 +705,9 @@ function setupVirusPage() {
     const cancelButton = document.getElementById('cancelAnalysis');
     const nameWarning = document.getElementById('nameWarning');
 
+    // Setup QC settings toggle
+    setupQcSettingsToggle('virusQcSettingsToggle', 'virusQcSettingsPanel');
+
     // Check for existing folder on experiment name change
     if (experimentNameInput) {
         experimentNameInput.addEventListener('input', () => {
@@ -655,7 +767,10 @@ function setupVirusPage() {
             const filePath = fileInput.files[0]?.path;
             const experimentName = experimentNameInput.value;
             const enableQC = document.getElementById('enableVirusQC')?.checked ?? true;
-    
+            
+            // Get QC parameters if QC is enabled
+            const qcParams = enableQC ? getQcParams('virus') : {};
+
             if (filePath && experimentName) {
                 if (resultButtons) {
                     resultButtons.style.display = 'none';
@@ -664,7 +779,7 @@ function setupVirusPage() {
                 outputElement.textContent = '';
                 currentProcess = experimentName;
                 cancelButton.style.display = 'block';
-                ipcRenderer.send('run-virus-command', filePath, experimentName, enableQC);
+                ipcRenderer.send('run-virus-command', filePath, experimentName, enableQC, qcParams);
                 spinner.style.display = 'block';
                 statusMessage.textContent = enableQC ? 
                     'Running QC and analysis... Please wait.' : 
@@ -778,6 +893,9 @@ function setupMetagenomicsPage() {
     const cancelButton = document.getElementById('cancelAnalysis');
     const nameWarning = document.getElementById('nameWarning');
 
+    // Setup QC settings toggle
+    setupQcSettingsToggle('metaQcSettingsToggle', 'metaQcSettingsPanel');
+
     // Check for existing folder on experiment name change
     if (experimentNameInput) {
         experimentNameInput.addEventListener('input', () => {
@@ -837,7 +955,10 @@ function setupMetagenomicsPage() {
             const filePath = fileInput.files[0]?.path;
             const experimentName = experimentNameInput.value;
             const enableQC = document.getElementById('enableMetagenomicsQC')?.checked ?? true;
-    
+            
+            // Get QC parameters if QC is enabled
+            const qcParams = enableQC ? getQcParams('meta') : {};
+
             if (filePath && experimentName) {
                 if (resultButtons) {
                     resultButtons.style.display = 'none';
@@ -846,7 +967,7 @@ function setupMetagenomicsPage() {
                 outputElement.textContent = '';
                 currentProcess = experimentName;
                 cancelButton.style.display = 'block';
-                ipcRenderer.send('run-metagenomics-command', filePath, experimentName, enableQC);
+                ipcRenderer.send('run-metagenomics-command', filePath, experimentName, enableQC, qcParams);
                 spinner.style.display = 'block';
                 statusMessage.textContent = enableQC ? 
                     'Running QC and analysis... Please wait.' : 

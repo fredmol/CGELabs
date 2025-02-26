@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.2.1] - 2025-02-20
+### Added
+- Quality Control Parameter panel integration
+  - QC parameters can now be customized for all of the different CGEtools. The parameters are passed on to cgeqc
+  - Real-time output will display QC parameters used
+  - The tool will auto detect if values are beyond expected range and fallback to default values
+
 
 ## [1.2.0] - 2025-02-20
 ### Added

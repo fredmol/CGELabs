@@ -39,6 +39,41 @@
             <div class="checkbox-wrapper">
                 <input type="checkbox" id="enableVirusQC" checked>
                 <label for="enableVirusQC">Run QC before analysis (recommended)</label>
+                <button id="virusQcSettingsToggle" class="toggle-button">Advanced QC Settings</button>
+            </div>
+            <div id="virusQcSettingsPanel" class="settings-panel" style="display:none;">
+                <h4>QC Parameters</h4>
+                <div class="parameter-grid">
+                    <div class="parameter-item">
+                        <label for="virusMinLength">Min Length:</label>
+                        <input type="number" id="virusMinLength" placeholder="16">
+                    </div>
+                    <div class="parameter-item">
+                        <label for="virusMaxLength">Max Length:</label>
+                        <input type="number" id="virusMaxLength" placeholder="2147483647">
+                    </div>
+                    <div class="parameter-item">
+                        <label for="virusMinPhred">Min Phred:</label>
+                        <input type="number" id="virusMinPhred" placeholder="20">
+                    </div>
+                    <div class="parameter-item">
+                        <label for="virusMinInternalPhred">Min Internal Phred:</label>
+                        <input type="number" id="virusMinInternalPhred" placeholder="0">
+                    </div>
+                    <div class="parameter-item">
+                        <label for="virusMinAverageQuality">Min Average Quality:</label>
+                        <input type="number" id="virusMinAverageQuality" placeholder="10">
+                    </div>
+                    <div class="parameter-item">
+                        <label for="virusTrim5Prime">Trim 5' End:</label>
+                        <input type="number" id="virusTrim5Prime" placeholder="0">
+                    </div>
+                    <div class="parameter-item">
+                        <label for="virusTrim3Prime">Trim 3' End:</label>
+                        <input type="number" id="virusTrim3Prime" placeholder="0">
+                    </div>
+                </div>
+                <p class="settings-note">Leave empty to use default values. Values shown are the defaults.</p>
             </div>
         </div>
     </div>

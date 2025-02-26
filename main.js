@@ -94,7 +94,8 @@ function isValidFilePath(filePath) {
 // ============================================================================
 // Quality Control Function
 // ============================================================================
-function runQC(filePath, experimentName) {
+
+function runQC(filePath, experimentName, qcParams = {}, pipelineType = 'bacterial') {
     return new Promise((resolve, reject) => {
         const homeDirectory = os.homedir();
         const condaPath = `${homeDirectory}/anaconda3/bin/conda`;
@@ -109,11 +110,30 @@ function runQC(filePath, experimentName) {
             return;
         }
 
-        const process = spawn('cgeqc', [
+        // Build the command with pipe type and any custom parameters
+        let cgeqcCmd = [
             '-i', filePath,
             '-o', qcDir,
-            '-n', experimentName
-        ]);
+            '-n', experimentName,
+            '--pipeline', pipelineType
+        ];
+        
+        // Add any custom parameters that have been provided
+        if (qcParams.minLength !== undefined && qcParams.minLength !== null) cgeqcCmd.push('--min_length', qcParams.minLength);
+        if (qcParams.maxLength !== undefined && qcParams.maxLength !== null) cgeqcCmd.push('--max_length', qcParams.maxLength);
+        if (qcParams.minPhred !== undefined && qcParams.minPhred !== null) cgeqcCmd.push('--min_phred', qcParams.minPhred);
+        if (qcParams.minInternalPhred !== undefined && qcParams.minInternalPhred !== null) cgeqcCmd.push('--min_internal_phred', qcParams.minInternalPhred);
+        if (qcParams.minAverageQuality !== undefined && qcParams.minAverageQuality !== null) cgeqcCmd.push('--min_average_quality', qcParams.minAverageQuality);
+        if (qcParams.trim5Prime !== undefined && qcParams.trim5Prime !== null) cgeqcCmd.push('--trim_5_prime', qcParams.trim5Prime);
+        if (qcParams.trim3Prime !== undefined && qcParams.trim3Prime !== null) cgeqcCmd.push('--trim_3_prime', qcParams.trim3Prime);
+
+        // Create a command string for better logging
+        let cmdString = 'cgeqc';
+        cgeqcCmd.forEach(arg => {
+            cmdString += ' ' + arg;
+        });
+
+        const process = spawn('cgeqc', cgeqcCmd);
 
         // Store process globally for cancellation
         global[`qc_process_${experimentName}`] = process;
@@ -121,12 +141,30 @@ function runQC(filePath, experimentName) {
         let stdout = '';
         let stderr = '';
 
+        // This function will be used to send real-time output
+        const analysisType = pipelineType === 'bacterial' ? 'isolate' : 
+                             pipelineType === 'viral' ? 'virus' : 'metagenomics';
+
         process.stdout.on('data', (data) => {
-            stdout += data.toString();
+            const output = data.toString();
+            stdout += output;
+            
+            // Send the output back to the renderer
+            const event = global.qcEvent;
+            if (event) {
+                event.sender.send(`${analysisType}-command-output`, { stdout: output });
+            }
         });
 
         process.stderr.on('data', (data) => {
-            stderr += data.toString();
+            const output = data.toString();
+            stderr += output;
+            
+            // Send the error back to the renderer
+            const event = global.qcEvent;
+            if (event) {
+                event.sender.send(`${analysisType}-command-output`, { stderr: output });
+            }
         });
 
         process.on('close', (code) => {
@@ -159,7 +197,6 @@ function runQC(filePath, experimentName) {
                 reject(new Error(`QC process exited with code ${code}. Error: ${stderr}`));
             }
         });
-
     });
 }
 
@@ -369,17 +406,20 @@ ipcMain.handle('check-file-size', (event, filePath) => {
 // ============================================================================
 // Analysis Command Handlers
 // ============================================================================
-ipcMain.on('run-isolate-command', (event, filePath, experimentName, enableQC) => {
+ipcMain.on('run-isolate-command', (event, filePath, experimentName, enableQC, qcParams = {}) => {
     if (enableQC) {
         event.sender.send('isolate-command-output', { stdout: 'Starting Quality Control...\n' });
-        runQC(filePath, experimentName)
+        global.qcEvent = event; // Store the event for QC output
+        runQC(filePath, experimentName, qcParams, 'bacterial')
             .then(result => {
+                global.qcEvent = null; // Clear the event
                 event.sender.send('isolate-command-output', { stdout: 'QC completed successfully.\n' });
                 event.sender.send('isolate-command-output', { stdout: `Using trimmed file: ${result.trimmedFilePath}\n` });
                 event.sender.send('isolate-command-output', { stdout: 'Starting bacterial analysis...\n' });
                 runAnalysisCommand('cgeisolate', result.trimmedFilePath, experimentName, event, 'isolate');
             })
             .catch(error => {
+                global.qcEvent = null; // Clear the event
                 event.sender.send('isolate-command-output', { stderr: `QC failed: ${error.message}\n` });
                 event.sender.send('isolate-command-output', { stdout: 'Falling back to original file for analysis...\n' });
                 runAnalysisCommand('cgeisolate', filePath, experimentName, event, 'isolate');
@@ -390,17 +430,20 @@ ipcMain.on('run-isolate-command', (event, filePath, experimentName, enableQC) =>
     }
 });
 
-ipcMain.on('run-virus-command', (event, filePath, experimentName, enableQC) => {
+ipcMain.on('run-virus-command', (event, filePath, experimentName, enableQC, qcParams = {}) => {
     if (enableQC) {
         event.sender.send('virus-command-output', { stdout: 'Starting Quality Control...\n' });
-        runQC(filePath, experimentName)
+        global.qcEvent = event; // Store the event for QC output
+        runQC(filePath, experimentName, qcParams, 'viral')
             .then(result => {
+                global.qcEvent = null; // Clear the event
                 event.sender.send('virus-command-output', { stdout: 'QC completed successfully.\n' });
                 event.sender.send('virus-command-output', { stdout: `Using trimmed file: ${result.trimmedFilePath}\n` });
                 event.sender.send('virus-command-output', { stdout: 'Starting virus analysis...\n' });
                 runAnalysisCommand('cgevirus', result.trimmedFilePath, experimentName, event, 'virus');
             })
             .catch(error => {
+                global.qcEvent = null; // Clear the event
                 event.sender.send('virus-command-output', { stderr: `QC failed: ${error.message}\n` });
                 event.sender.send('virus-command-output', { stdout: 'Falling back to original file for analysis...\n' });
                 runAnalysisCommand('cgevirus', filePath, experimentName, event, 'virus');
@@ -411,17 +454,20 @@ ipcMain.on('run-virus-command', (event, filePath, experimentName, enableQC) => {
     }
 });
 
-ipcMain.on('run-metagenomics-command', (event, filePath, experimentName, enableQC) => {
+ipcMain.on('run-metagenomics-command', (event, filePath, experimentName, enableQC, qcParams = {}) => {
     if (enableQC) {
         event.sender.send('metagenomics-command-output', { stdout: 'Starting Quality Control...\n' });
-        runQC(filePath, experimentName)
+        global.qcEvent = event; // Store the event for QC output
+        runQC(filePath, experimentName, qcParams, 'metagenomic')
             .then(result => {
+                global.qcEvent = null; // Clear the event
                 event.sender.send('metagenomics-command-output', { stdout: 'QC completed successfully.\n' });
                 event.sender.send('metagenomics-command-output', { stdout: `Using trimmed file: ${result.trimmedFilePath}\n` });
                 event.sender.send('metagenomics-command-output', { stdout: 'Starting metagenomics analysis...\n' });
                 runAnalysisCommand('cgemetagenomics', result.trimmedFilePath, experimentName, event, 'metagenomics');
             })
             .catch(error => {
+                global.qcEvent = null; // Clear the event
                 event.sender.send('metagenomics-command-output', { stderr: `QC failed: ${error.message}\n` });
                 event.sender.send('metagenomics-command-output', { stdout: 'Falling back to original file for analysis...\n' });
                 runAnalysisCommand('cgemetagenomics', filePath, experimentName, event, 'metagenomics');
