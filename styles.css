@@ -476,7 +476,11 @@ input[type="text"]:focus {
 }
 
 
-/* Welcome Page Styling */
+/* -----------------------------------------------------------------------------
+   Welcome page styling
+   ----------------------------------------------------------------------------- */
+
+
 .welcome-container {
     text-align: center;
     padding: 40px;
@@ -547,7 +551,10 @@ input[type="text"]:focus {
     line-height: 1.6;
 }
 
-/* Animations */
+/* -----------------------------------------------------------------------------
+   Animations
+   ----------------------------------------------------------------------------- */
+
 @keyframes fadeInDown {
     from {
         opacity: 0;
@@ -579,7 +586,10 @@ input[type="text"]:focus {
     }
 }
 
-/* Hide sidebar on index page */
+/* -----------------------------------------------------------------------------
+   Hide sidebar on index page
+   ----------------------------------------------------------------------------- */
+
 body.index-page .sidebar {
     display: none !important;  /* Added !important to ensure it takes precedence */
 }
@@ -616,7 +626,9 @@ body.index-page .main-content {
 
 
 
-/* Checkbox styling */
+/* -----------------------------------------------------------------------------
+   Checkbox styling
+   ----------------------------------------------------------------------------- */
 .checkbox-wrapper {
     display: flex;
     align-items: center;
@@ -636,22 +648,22 @@ body.index-page .main-content {
 }
 
 
-
-
-
-/* QC Settings Styles */
 .toggle-button {
     margin-left: 10px;
     padding: 5px 10px;
     border-radius: 4px;
-    background-color: #f0f0f0;
-    border: 1px solid #ccc;
+    background-color: #4CAF50;  /* Green background */
+    color: white;              /* White text */
+    border: 1px solid #3d8b40;
     cursor: pointer;
     font-size: 12px;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.1);
 }
 
 .toggle-button:hover {
-    background-color: #e0e0e0;
+    background-color: #3d8b40;
+    transform: translateY(-1px);
+    box-shadow: 0 2px 5px rgba(0,0,0,0.2);
 }
 
 .settings-panel {
@@ -689,4 +701,77 @@ body.index-page .main-content {
     font-size: 12px;
     color: #666;
     margin-top: 10px;
+}
+
+
+
+
+
+/* -----------------------------------------------------------------------------
+   Collapsible console
+   ----------------------------------------------------------------------------- */
+   
+.console-container {
+    margin-top: 20px;
+    border-radius: 8px;
+    overflow: hidden;
+    border: 1px solid #ddd;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+}
+
+.console-header {
+    background-color: #333;
+    color: white;
+    padding: 10px 15px;
+    cursor: pointer;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    font-family: 'Monaco', 'Consolas', monospace;
+}
+
+.console-header:hover {
+    background-color: #444;
+}
+
+.console-status {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    flex-grow: 1;
+}
+
+.console-toggle {
+    background: none;
+    border: none;
+    color: white;
+    cursor: pointer;
+    font-size: 16px;
+    width: 24px;
+    height: 24px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 0;
+    margin-left: 10px;
+}
+
+.console-body {
+    max-height: 0;
+    overflow: hidden;
+    transition: max-height 0.3s ease-out;
+}
+
+.console-body.expanded {
+    max-height: 300px;
+}
+
+.console-output {
+    background-color: #1a1a1a;
+    color: #00ff00;
+    font-family: 'Monaco', 'Consolas', monospace;
+    padding: 20px;
+    overflow-y: auto;
+    height: 300px;
+    border: none;
 }

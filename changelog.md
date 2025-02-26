@@ -1,6 +1,20 @@
 # Changelog
 
-## [1.2.1] - 2025-02-20
+
+## [1.2.2] - 2025-02-26
+### Added
+- QC Report Integration
+  - Added QC report column to results table
+  - Added dedicated QC report viewing buttons on analysis pages
+  - QC reports can be viewed in-app or externally
+
+### Enhanced
+- User Interface Improvements
+  - Improved QC settings button visibility with green color scheme
+  - Implemented collapsible console output with status summary
+  - Console now shows just the latest line by default with option to expand
+
+## [1.2.1] - 2025-02-25
 ### Added
 - Quality Control Parameter panel integration
   - QC parameters can now be customized for all of the different CGEtools. The parameters are passed on to cgeqc

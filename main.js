@@ -248,12 +248,14 @@ ipcMain.handle('get-results', async () => {
                 const folderPath = path.join(resultsDirectory, folderName);
                 const reportPath = path.join(folderPath, 'report.txt');
                 const pdfPath = path.join(folderPath, `${folderName}_report.pdf`);
+                const qcPdfPath = path.join(folderPath, 'qc', `${folderName}_qc_report.pdf`);
                 const stats = fs.statSync(folderPath);
                 
                 return {
                     name: folderName,
                     reportExists: fs.existsSync(reportPath),
                     pdfExists: fs.existsSync(pdfPath),
+                    qcPdfExists: fs.existsSync(qcPdfPath),
                     toolType: getToolType(folderPath),
                     date: stats.mtime.toISOString()
                 };

@@ -78,6 +78,72 @@ function validateExperimentName(name) {
 
 
 
+
+// ============================================================================
+// COLLAPSIBLE CONSOLE
+// ============================================================================
+
+
+
+/**
+ * Sets up a collapsible console
+ * @param {string} headerId - ID of the console header element
+ * @param {string} bodyId - ID of the console body element
+ * @param {string} toggleId - ID of the toggle button
+ * @param {string} statusId - ID of the status text element
+ * @param {string} outputId - ID of the output element
+ */
+function setupCollapsibleConsole(headerId, bodyId, toggleId, statusId, outputId) {
+    const header = document.getElementById(headerId);
+    const body = document.getElementById(bodyId);
+    const toggle = document.getElementById(toggleId);
+    const status = document.getElementById(statusId);
+    const output = document.getElementById(outputId);
+    
+    if (!header || !body || !toggle || !status || !output) return;
+    
+    // Toggle console visibility
+    const toggleConsole = () => {
+        if (body.classList.contains('expanded')) {
+            body.classList.remove('expanded');
+            toggle.textContent = 'Show';
+        } else {
+            body.classList.add('expanded');
+            toggle.textContent = 'Hide';
+            if (output) scrollToBottom(output);
+        }
+    };
+
+    // Setup click handlers
+    header.addEventListener('click', toggleConsole);
+    toggle.addEventListener('click', (e) => {
+        e.stopPropagation(); // Prevent double toggle from header click
+        toggleConsole();
+    });
+
+    // Initialize as collapsed
+    body.classList.remove('expanded');
+    toggle.textContent = 'Show';
+}
+
+/**
+ * Updates the console status with the latest output line
+ * @param {string} statusId - ID of the status element
+ * @param {string} text - Text to extract status from
+ */
+function updateConsoleStatus(statusId, text) {
+    const status = document.getElementById(statusId);
+    if (!status) return;
+    
+    // Find the last non-empty line
+    const lines = text.split('\n').filter(line => line.trim().length > 0);
+    if (lines.length > 0) {
+        const lastLine = lines[lines.length - 1];
+        // Truncate if too long
+        status.textContent = lastLine.length > 100 ? lastLine.substring(0, 97) + '...' : lastLine;
+    }
+}
+
 // ============================================================================
 // QC parameter panel 
 // ============================================================================
@@ -213,6 +279,7 @@ function updateResultsTable(resultFolders) {
         </th>
         <th>Text Report</th>
         <th>PDF Report</th>
+        <th>QC Report</th>
         <th>Actions</th>
     `;
 
@@ -325,6 +392,34 @@ function updateResultsTable(resultFolders) {
         } else {
             cellPdfReport.textContent = 'No PDF report available';
         }
+
+        // QC PDF Report
+        const cellQcReport = row.insertCell();
+        if (folderInfo.qcPdfExists) {
+            const viewLink = document.createElement('a');
+            viewLink.href = '#';
+            viewLink.textContent = 'View in App';
+            viewLink.addEventListener('click', (event) => {
+                event.preventDefault();
+                const qcPdfPath = path.join(resultsDirectory, folderInfo.name, 'qc', `${folderInfo.name}_qc_report.pdf`);
+                ipcRenderer.send('show-pdf', qcPdfPath);
+            });
+            
+            const openLink = document.createElement('a');
+            openLink.href = '#';
+            openLink.textContent = 'Open External';
+            openLink.addEventListener('click', (event) => { 
+                event.preventDefault();
+                const qcPdfPath = path.join(resultsDirectory, folderInfo.name, 'qc', `${folderInfo.name}_qc_report.pdf`);
+                ipcRenderer.send('open-file', qcPdfPath);
+            });
+            
+            cellQcReport.appendChild(viewLink);
+            cellQcReport.appendChild(document.createTextNode(' | '));
+            cellQcReport.appendChild(openLink);
+        } else {
+            cellQcReport.textContent = 'No QC report available';
+        }
         
         // Delete button
         const cellActions = row.insertCell();
@@ -347,7 +442,7 @@ function updateResultsTable(resultFolders) {
         const previewRow = tableBody.insertRow();
         previewRow.className = 'preview-row hidden';
         const previewCell = previewRow.insertCell();
-        previewCell.colSpan = 6;
+        previewCell.colSpan = 7; // Updated for the new QC column
         previewCell.innerHTML = `<div class="preview-content">Loading preview...</div>`;
 
         // Preview functionality
@@ -496,6 +591,9 @@ function setupBacteriaPage() {
     initQcField('trim5Prime', 0);
     initQcField('trim3Prime', 0);
 
+    // Setup collapsible console
+    setupCollapsibleConsole('consoleHeader', 'consoleBody', 'consoleToggle', 'consoleStatus', 'output');
+
     // Add validation for numeric fields to provide immediate feedback
     const qcNumericFields = [
         'minLength', 'maxLength', 'minPhred', 
@@ -640,20 +738,42 @@ function setupBacteriaPage() {
         });
     }
 
-    // Event listeners for command output and completion
+    const openQcPdf = document.getElementById('openQcPdf');
+    if (openQcPdf) {
+        openQcPdf.addEventListener('click', () => {
+            const experimentName = experimentNameInput.value;
+            const qcPdfPath = path.join('/var/lib/cge_test/results', experimentName, 'qc', `${experimentName}_qc_report.pdf`);
+            
+            // Check if file exists before trying to open it
+            if (fs.existsSync(qcPdfPath)) {
+                ipcRenderer.send('show-pdf', qcPdfPath);
+            } else {
+                alert('QC report not found. The QC process may not have completed successfully.');
+            }
+        });
+    }
+
     ipcRenderer.on('isolate-command-output', (event, { stdout, stderr }) => {
         if (outputElement && currentProcess) {
             if (stdout) {
                 outputHistory[currentProcess] = outputHistory[currentProcess] || '';
                 outputHistory[currentProcess] += stdout + '\n';
                 outputElement.textContent = outputHistory[currentProcess];
+                // Update console status
+                updateConsoleStatus('consoleStatus', stdout);
             }
             if (stderr) {
                 outputHistory[currentProcess] = outputHistory[currentProcess] || '';
                 outputHistory[currentProcess] += stderr + '\n';
                 outputElement.textContent = outputHistory[currentProcess];
+                // Update console status
+                updateConsoleStatus('consoleStatus', stderr);
             }
-            scrollToBottom(outputElement);
+            // Only scroll if console is expanded
+            const consoleBody = document.getElementById('consoleBody');
+            if (consoleBody && consoleBody.classList.contains('expanded')) {
+                scrollToBottom(outputElement);
+            }
         }
     });
 
@@ -704,6 +824,9 @@ function setupVirusPage() {
     const openText = document.getElementById('openText');
     const cancelButton = document.getElementById('cancelAnalysis');
     const nameWarning = document.getElementById('nameWarning');
+
+    // Setup collapsible console
+    setupCollapsibleConsole('virusConsoleHeader', 'virusConsoleBody', 'virusConsoleToggle', 'virusConsoleStatus', 'virusOutput');
 
     // Setup QC settings toggle
     setupQcSettingsToggle('virusQcSettingsToggle', 'virusQcSettingsPanel');
@@ -828,6 +951,21 @@ function setupVirusPage() {
         });
     }
 
+    const openQcPdf = document.getElementById('openQcPdf');
+    if (openQcPdf) {
+        openQcPdf.addEventListener('click', () => {
+            const experimentName = experimentNameInput.value;
+            const qcPdfPath = path.join('/var/lib/cge_test/results', experimentName, 'qc', `${experimentName}_qc_report.pdf`);
+            
+            // Check if file exists before trying to open it
+            if (fs.existsSync(qcPdfPath)) {
+                ipcRenderer.send('show-pdf', qcPdfPath);
+            } else {
+                alert('QC report not found. The QC process may not have completed successfully.');
+            }
+        });
+    }
+
     // Event listeners for command output and completion
     ipcRenderer.on('virus-command-output', (event, { stdout, stderr }) => {
         if (outputElement && currentProcess) {
@@ -835,13 +973,21 @@ function setupVirusPage() {
                 outputHistory[currentProcess] = outputHistory[currentProcess] || '';
                 outputHistory[currentProcess] += stdout + '\n';
                 outputElement.textContent = outputHistory[currentProcess];
+                // Update console status
+                updateConsoleStatus('virusConsoleStatus', stdout);
             }
             if (stderr) {
                 outputHistory[currentProcess] = outputHistory[currentProcess] || '';
                 outputHistory[currentProcess] += stderr + '\n';
                 outputElement.textContent = outputHistory[currentProcess];
+                // Update console status
+                updateConsoleStatus('virusConsoleStatus', stderr);
             }
-            scrollToBottom(outputElement);
+            // Only scroll if console is expanded
+            const consoleBody = document.getElementById('virusConsoleBody');
+            if (consoleBody && consoleBody.classList.contains('expanded')) {
+                scrollToBottom(outputElement);
+            }
         }
     });
 
@@ -892,6 +1038,9 @@ function setupMetagenomicsPage() {
     const openText = document.getElementById('openText');
     const cancelButton = document.getElementById('cancelAnalysis');
     const nameWarning = document.getElementById('nameWarning');
+
+    // Setup collapsible console
+    setupCollapsibleConsole('metaConsoleHeader', 'metaConsoleBody', 'metaConsoleToggle', 'metaConsoleStatus', 'metagenomicsOutput');
 
     // Setup QC settings toggle
     setupQcSettingsToggle('metaQcSettingsToggle', 'metaQcSettingsPanel');
@@ -1016,6 +1165,21 @@ function setupMetagenomicsPage() {
         });
     }
 
+    const openQcPdf = document.getElementById('openQcPdf');
+    if (openQcPdf) {
+        openQcPdf.addEventListener('click', () => {
+            const experimentName = experimentNameInput.value;
+            const qcPdfPath = path.join('/var/lib/cge_test/results', experimentName, 'qc', `${experimentName}_qc_report.pdf`);
+            
+            // Check if file exists before trying to open it
+            if (fs.existsSync(qcPdfPath)) {
+                ipcRenderer.send('show-pdf', qcPdfPath);
+            } else {
+                alert('QC report not found. The QC process may not have completed successfully.');
+            }
+        });
+    }
+
     // Event listeners for command output and completion
     ipcRenderer.on('metagenomics-command-output', (event, { stdout, stderr }) => {
         if (outputElement && currentProcess) {
@@ -1023,13 +1187,21 @@ function setupMetagenomicsPage() {
                 outputHistory[currentProcess] = outputHistory[currentProcess] || '';
                 outputHistory[currentProcess] += stdout + '\n';
                 outputElement.textContent = outputHistory[currentProcess];
+                // Update console status
+                updateConsoleStatus('metaConsoleStatus', stdout);
             }
             if (stderr) {
                 outputHistory[currentProcess] = outputHistory[currentProcess] || '';
                 outputHistory[currentProcess] += stderr + '\n';
                 outputElement.textContent = outputHistory[currentProcess];
+                // Update console status
+                updateConsoleStatus('metaConsoleStatus', stderr);
             }
-            scrollToBottom(outputElement);
+            // Only scroll if console is expanded
+            const consoleBody = document.getElementById('metaConsoleBody');
+            if (consoleBody && consoleBody.classList.contains('expanded')) {
+                scrollToBottom(outputElement);
+            }
         }
     });
 

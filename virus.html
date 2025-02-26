@@ -94,7 +94,18 @@
                 <h3>Analysis Progress</h3>
                 <p id="statusMessage" class="status-message">Waiting to start analysis...</p>
             </div>
-            <pre id="virusOutput" class="terminal-output"></pre>
+            
+            <!-- Collapsible Console -->
+            <div class="console-container">
+                <div class="console-header" id="virusConsoleHeader">
+                    <div class="console-status" id="virusConsoleStatus">Waiting for analysis...</div>
+                    <button class="console-toggle" id="virusConsoleToggle">Show</button>
+                </div>
+                <div class="console-body" id="virusConsoleBody">
+                    <pre id="virusOutput" class="console-output"></pre>
+                </div>
+            </div>
+            
             <div class="control-buttons">
                 <button id="cancelAnalysis" class="danger-button" style="display: none;">
                     Cancel Analysis
@@ -124,6 +135,10 @@
             <button id="openText" class="secondary-button">
                 <span class="button-icon">📝</span>
                 View Text Report
+            </button>
+            <button id="openQcPdf" class="secondary-button">
+                <span class="button-icon">🔍</span>
+                View QC Report
             </button>
         </div>
     </div>

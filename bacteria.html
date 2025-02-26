@@ -96,7 +96,18 @@
                 <h3>Analysis Progress</h3>
                 <p id="statusMessage" class="status-message">Waiting to start analysis...</p>
             </div>
-            <pre id="output" class="terminal-output"></pre>
+            
+            <!-- Collapsible Console -->
+            <div class="console-container">
+                <div class="console-header" id="consoleHeader">
+                    <div class="console-status" id="consoleStatus">Waiting for analysis...</div>
+                    <button class="console-toggle" id="consoleToggle">Show</button>
+                </div>
+                <div class="console-body" id="consoleBody">
+                    <pre id="output" class="console-output"></pre>
+                </div>
+            </div>
+            
             <div class="control-buttons">
                 <button id="cancelAnalysis" class="danger-button" style="display: none;">
                     Cancel Analysis
@@ -111,7 +122,6 @@
         </div>
     </div>
 
-    <!-- Results Section -->
     <div id="resultButtons" class="results-section" style="display:none;">
         <h3>Analysis Complete</h3>
         <div class="result-buttons">
@@ -126,6 +136,10 @@
             <button id="openText" class="secondary-button">
                 <span class="button-icon">📝</span>
                 View Text Report
+            </button>
+            <button id="openQcPdf" class="secondary-button">
+                <span class="button-icon">🔍</span>
+                View QC Report
             </button>
         </div>
     </div>
