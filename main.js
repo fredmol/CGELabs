@@ -12,10 +12,9 @@
 // ============================================================================
 // Core Dependencies and Constants
 // ============================================================================
-const { app, BrowserWindow, ipcMain } = require('electron');
+const { app, BrowserWindow, ipcMain, dialog, shell } = require('electron');
 const path = require('path');
 const { spawn } = require('child_process');
-const { dialog, shell } = require('electron');
 const os = require('os');
 const fs = require('fs');
 const crypto = require('crypto');
@@ -25,7 +24,7 @@ const crypto = require('crypto');
 // ============================================================================
 const FILE_SIZE_SETTINGS = {
     MIN_SIZE_MB: 5,    // Minimum file size in MB
-    MAX_SIZE_GB: 1      // Maximum file size in GB
+    MAX_SIZE_GB: 1     // Maximum file size in GB
 };
 
 const resultsDirectory = '/var/lib/cge_test/results';
@@ -37,24 +36,23 @@ let pdfWindow = null;
 function createWindow() {
     const iconPath = path.join(__dirname, 'build/icons/logo_256.png');
     
-    // Make the window 25% smaller
     const win = new BrowserWindow({
-        width: 960, // 75% of 1200
-        height: 720, // 75% of 900
+        width: 960,
+        height: 720,
         title: 'CGELabs',
         webPreferences: {
             nodeIntegration: true,
             contextIsolation: false,
-            zoomFactor: 0.75, // Another way to set zoom factor
+            zoomFactor: 0.88,
         },
         icon: iconPath,
     });
     
     win.loadFile('index.html');
     
-    // Try setting zoom after page has loaded
+    // Set zoom after page has loaded
     win.webContents.once('did-finish-load', () => {
-        win.webContents.setZoomFactor(0.80);
+        win.webContents.setZoomFactor(0.88);
     });
 }
 
@@ -101,9 +99,38 @@ function isValidFilePath(filePath) {
 }
 
 // ============================================================================
+// Metadata Management
+// ============================================================================
+function saveToolMetadata(experimentName, toolName) {
+    try {
+        const metadataPath = path.join(resultsDirectory, experimentName, 'metadata.json');
+        const metadata = {
+            tool: toolName,
+            timestamp: new Date().toISOString()
+        };
+        fs.writeFileSync(metadataPath, JSON.stringify(metadata, null, 2));
+    } catch (error) {
+        console.error('Error saving tool metadata:', error);
+    }
+}
+
+function getToolType(folderPath) {
+    try {
+        const metadataPath = path.join(folderPath, 'metadata.json');
+        if (fs.existsSync(metadataPath)) {
+            const metadata = JSON.parse(fs.readFileSync(metadataPath, 'utf8'));
+            return metadata.tool;
+        }
+        return 'Unknown';
+    } catch (error) {
+        console.error('Error determining tool type:', error);
+        return 'Unknown';
+    }
+}
+
+// ============================================================================
 // Quality Control Function
 // ============================================================================
-
 function runQC(filePath, experimentName, qcParams = {}, pipelineType = 'bacterial') {
     return new Promise((resolve, reject) => {
         const homeDirectory = os.homedir();
@@ -150,9 +177,9 @@ function runQC(filePath, experimentName, qcParams = {}, pipelineType = 'bacteria
         let stdout = '';
         let stderr = '';
 
-        // This function will be used to send real-time output
+        // Determine analysis type for event messaging
         const analysisType = pipelineType === 'bacterial' ? 'isolate' : 
-                             pipelineType === 'viral' ? 'virus' : 'metagenomics';
+                           pipelineType === 'viral' ? 'virus' : 'metagenomics';
 
         process.stdout.on('data', (data) => {
             const output = data.toString();
@@ -209,35 +236,146 @@ function runQC(filePath, experimentName, qcParams = {}, pipelineType = 'bacteria
     });
 }
 
+// ============================================================================
+// Core Analysis Functions
+// ============================================================================
 
-// ============================================================================
-// Metadata Management
-// ============================================================================
-function saveToolMetadata(experimentName, toolName) {
-    try {
-        const metadataPath = path.join(resultsDirectory, experimentName, 'metadata.json');
-        const metadata = {
-            tool: toolName,
-            timestamp: new Date().toISOString()
-        };
-        fs.writeFileSync(metadataPath, JSON.stringify(metadata, null, 2));
-    } catch (error) {
-        console.error('Error saving tool metadata:', error);
-    }
+/**
+ * Executes merge commands using conda environment
+ */
+function mergeCondaCommand(scriptName, filePath, experimentName, event, analysisType) {
+    const homeDirectory = os.homedir();
+    const condaPath = `${homeDirectory}/anaconda3/bin/conda`;
+    const scriptPath = `${homeDirectory}/anaconda3/envs/cge_env/bin/${scriptName}`;
+    const pythonPath = `${homeDirectory}/anaconda3/envs/cge_env/bin/python3`;
+
+    const args = ['run', '--live-stream', '-n', 'cge_env', pythonPath, scriptPath, 'merge', '--dir_path', filePath, '--name', experimentName];
+    const process = spawn(condaPath, args);
+
+    process.stdout.on('data', (data) => {
+        event.sender.send(`${analysisType}-command-output`, { stdout: data.toString() });
+    });
+
+    process.stderr.on('data', (data) => {
+        event.sender.send(`${analysisType}-command-output`, { stderr: data.toString() });
+    });
+
+    process.on('close', (code) => {
+        if (code === 0) {
+            event.sender.send(`${analysisType}-complete-success`);
+        } else {
+            event.sender.send(`${analysisType}-complete-failure`, `Process exited with code ${code}`);
+        }
+    });
 }
 
-function getToolType(folderPath) {
-    try {
-        const metadataPath = path.join(folderPath, 'metadata.json');
-        if (fs.existsSync(metadataPath)) {
-            const metadata = JSON.parse(fs.readFileSync(metadataPath, 'utf8'));
-            return metadata.tool;
-        }
-        return 'Unknown';
-    } catch (error) {
-        console.error('Error determining tool type:', error);
-        return 'Unknown';
+/**
+ * Executes analysis commands using conda environment
+ */
+function runAnalysisCommand(scriptName, filePath, experimentName, event, analysisType) {
+    const homeDirectory = os.homedir();
+    // Determine conda path based on platform
+    let condaPath;
+    if (global.process.platform === 'darwin') {
+        // On macOS, use conda from the PATH
+        condaPath = 'conda';
+    } else {
+        condaPath = `${homeDirectory}/anaconda3/bin/conda`;
     }
+    
+    // Buffer to store output until directory is ready
+    let outputBuffer = [];
+    
+    // Determine tool name from script name
+    let toolName;
+    switch(scriptName) {
+        case 'cgeisolate':
+            toolName = 'CGE Isolate';
+            break;
+        case 'cgevirus':
+            toolName = 'CGE Virus';
+            break;
+        case 'cgemetagenomics':
+            toolName = 'CGE Metagenomics';
+            break;
+        default:
+            toolName = scriptName;
+    }
+
+    // Prepare command arguments
+    let args = [
+        'run',
+        '--no-capture-output',
+        scriptName
+    ];
+
+    if (scriptName === 'cgeisolate') {
+        args.push('-i', filePath, '-name', experimentName, '-db_dir', '/var/lib/cge_test/database/cge_db');
+    } else {
+        args.push('-i', filePath, '-name', experimentName);
+    }
+    
+    const process = spawn(condaPath, args);
+
+    // Store process globally for cancellation
+    global[`process_${experimentName}`] = process;
+
+    // Handle process output
+    process.stdout.on('data', (data) => {
+        const output = data.toString();
+        if (!output.startsWith('function')) {
+            event.sender.send(`${analysisType}-command-output`, { stdout: output });
+            outputBuffer.push(`[${new Date().toISOString()}] [STDOUT] ${output.trim()}`);
+        }
+    });
+
+    process.stderr.on('data', (data) => {
+        const output = data.toString();
+        if (!output.startsWith('function')) {
+            event.sender.send(`${analysisType}-command-output`, { stderr: output });
+            outputBuffer.push(`[${new Date().toISOString()}] [STDERR] ${output.trim()}`);
+        }
+    });
+
+    // Handle process errors and completion
+    process.on('error', (error) => {
+        console.error('Process error:', error);
+        event.sender.send(`${analysisType}-command-output`, { stderr: error.message });
+        event.sender.send(`${analysisType}-complete-failure`, error.message);
+        outputBuffer.push(`[${new Date().toISOString()}] [ERROR] Process error: ${error.message}`);
+        delete global[`process_${experimentName}`];
+    });
+
+    process.on('close', (code) => {
+        // Clean up process reference
+        delete global[`process_${experimentName}`];
+
+        if (code === 0) {
+            const experimentDir = path.join(resultsDirectory, experimentName);
+            const logPath = path.join(experimentDir, 'analysis.log');
+            outputBuffer.push(`[${new Date().toISOString()}] [INFO] Process completed successfully with exit code ${code}`);
+            
+            // Write the buffered output to the log file
+            fs.writeFileSync(logPath, outputBuffer.join('\n') + '\n');
+            
+            saveToolMetadata(experimentName, toolName);
+            event.sender.send(`${analysisType}-complete-success`);
+        } else {
+            outputBuffer.push(`[${new Date().toISOString()}] [ERROR] Process failed with exit code ${code}`);
+            event.sender.send(`${analysisType}-complete-failure`, `Process exited with code ${code}`);
+            
+            // Even if process fails, try to write the log if we have output
+            if (outputBuffer.length > 0) {
+                try {
+                    const experimentDir = path.join(resultsDirectory, experimentName);
+                    const logPath = path.join(experimentDir, 'analysis.log');
+                    fs.writeFileSync(logPath, outputBuffer.join('\n') + '\n');
+                } catch (error) {
+                    console.error('Failed to write log file:', error);
+                }
+            }
+        }
+    });
 }
 
 // ============================================================================
@@ -492,142 +630,3 @@ ipcMain.on('run-metagenomics-command', (event, filePath, experimentName, enableQ
 ipcMain.on('run-merge-command', (event, filePath, experimentName) => {
     mergeCondaCommand('cgeutil', filePath, experimentName, event, 'merge');
 });
-
-// ============================================================================
-// Core Analysis Functions
-// ============================================================================
-/**
- * Executes merge commands using conda environment
- */
-function mergeCondaCommand(scriptName, filePath, experimentName, event, analysisType) {
-    const homeDirectory = os.homedir();
-    const condaPath = `${homeDirectory}/anaconda3/bin/conda`;
-    const scriptPath = `${homeDirectory}/anaconda3/envs/cge_env/bin/${scriptName}`;
-    const pythonPath = `${homeDirectory}/anaconda3/envs/cge_env/bin/python3`;
-
-    const args = ['run', '--live-stream', '-n', 'cge_env', pythonPath, scriptPath, 'merge', '--dir_path', filePath, '--name', experimentName];
-    const process = spawn(condaPath, args);
-
-    process.stdout.on('data', (data) => {
-        event.sender.send(`${analysisType}-command-output`, { stdout: data.toString() });
-    });
-
-    process.stderr.on('data', (data) => {
-        event.sender.send(`${analysisType}-command-output`, { stderr: data.toString() });
-    });
-
-    process.on('close', (code) => {
-        if (code === 0) {
-            event.sender.send(`${analysisType}-complete-success`);
-        } else {
-            event.sender.send(`${analysisType}-complete-failure`, `Process exited with code ${code}`);
-        }
-    });
-}
-
-/**
- * Executes analysis commands using conda environment
- */
-function runAnalysisCommand(scriptName, filePath, experimentName, event, analysisType) {
-    const homeDirectory = os.homedir();
-    let condaPath;
-    if (global.process.platform === 'darwin') {  // Explicitly use global.process
-        // On macOS, use conda from the PATH
-        condaPath = 'conda';
-    } else {
-        condaPath = `${homeDirectory}/anaconda3/bin/conda`;
-    }
-    
-    // Buffer to store output until directory is ready
-    let outputBuffer = [];
-    
-    let toolName;
-    switch(scriptName) {
-        case 'cgeisolate':
-            toolName = 'CGE Isolate';
-            break;
-        case 'cgevirus':
-            toolName = 'CGE Virus';
-            break;
-        case 'cgemetagenomics':
-            toolName = 'CGE Metagenomics';
-            break;
-        default:
-            toolName = scriptName;
-    }
-
-    let args = [
-        'run',
-        '--no-capture-output',
-        scriptName
-    ];
-
-    if (scriptName === 'cgeisolate') {
-        args.push('-i', filePath, '-name', experimentName, '-db_dir', '/var/lib/cge_test/database/cge_db');
-    } else {
-        args.push('-i', filePath, '-name', experimentName);
-    }
-    
-    const process = spawn(condaPath, args);
-
-
-    // Store process globally for cancellation
-    global[`process_${experimentName}`] = process;
-
-    // Handle process output
-    process.stdout.on('data', (data) => {
-        const output = data.toString();
-        if (!output.startsWith('function')) {
-            event.sender.send(`${analysisType}-command-output`, { stdout: output });
-            outputBuffer.push(`[${new Date().toISOString()}] [STDOUT] ${output.trim()}`);
-        }
-    });
-
-    process.stderr.on('data', (data) => {
-        const output = data.toString();
-        if (!output.startsWith('function')) {
-            event.sender.send(`${analysisType}-command-output`, { stderr: output });
-            outputBuffer.push(`[${new Date().toISOString()}] [STDERR] ${output.trim()}`);
-        }
-    });
-
-    // Handle process errors and completion
-    process.on('error', (error) => {
-        console.error('Process error:', error);
-        event.sender.send(`${analysisType}-command-output`, { stderr: error.message });
-        event.sender.send(`${analysisType}-complete-failure`, error.message);
-        outputBuffer.push(`[${new Date().toISOString()}] [ERROR] Process error: ${error.message}`);
-        delete global[`process_${experimentName}`];
-    });
-
-    process.on('close', (code) => {
-        // Clean up process reference
-        delete global[`process_${experimentName}`];
-
-        if (code === 0) {
-            const experimentDir = path.join(resultsDirectory, experimentName);
-            const logPath = path.join(experimentDir, 'analysis.log');
-            outputBuffer.push(`[${new Date().toISOString()}] [INFO] Process completed successfully with exit code ${code}`);
-            
-            // Write the buffered output to the log file
-            fs.writeFileSync(logPath, outputBuffer.join('\n') + '\n');
-            
-            saveToolMetadata(experimentName, toolName);
-            event.sender.send(`${analysisType}-complete-success`);
-        } else {
-            outputBuffer.push(`[${new Date().toISOString()}] [ERROR] Process failed with exit code ${code}`);
-            event.sender.send(`${analysisType}-complete-failure`, `Process exited with code ${code}`);
-            
-            // Even if process fails, try to write the log if we have output
-            if (outputBuffer.length > 0) {
-                try {
-                    const experimentDir = path.join(resultsDirectory, experimentName);
-                    const logPath = path.join(experimentDir, 'analysis.log');
-                    fs.writeFileSync(logPath, outputBuffer.join('\n') + '\n');
-                } catch (error) {
-                    console.error('Failed to write log file:', error);
-                }
-            }
-        }
-    });
-}

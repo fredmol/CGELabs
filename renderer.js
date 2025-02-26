@@ -55,7 +55,6 @@ function scrollToBottom(element) {
     });
 }
 
-
 /**
  * Validates experiment name for allowed characters
  * @param {string} name - The experiment name to validate
@@ -75,23 +74,12 @@ function validateExperimentName(name) {
     return { isValid: true, message: '' };
 }
 
-
-
-
-
 // ============================================================================
-// COLLAPSIBLE CONSOLE
+// UI Components
 // ============================================================================
-
-
 
 /**
  * Sets up a collapsible console
- * @param {string} headerId - ID of the console header element
- * @param {string} bodyId - ID of the console body element
- * @param {string} toggleId - ID of the toggle button
- * @param {string} statusId - ID of the status text element
- * @param {string} outputId - ID of the output element
  */
 function setupCollapsibleConsole(headerId, bodyId, toggleId, statusId, outputId) {
     const header = document.getElementById(headerId);
@@ -128,8 +116,6 @@ function setupCollapsibleConsole(headerId, bodyId, toggleId, statusId, outputId)
 
 /**
  * Updates the console status with the latest output line
- * @param {string} statusId - ID of the status element
- * @param {string} text - Text to extract status from
  */
 function updateConsoleStatus(statusId, text) {
     const status = document.getElementById(statusId);
@@ -144,10 +130,84 @@ function updateConsoleStatus(statusId, text) {
     }
 }
 
-// ============================================================================
-// QC parameter panel 
-// ============================================================================
+/**
+ * Sets up the collapsible info panel
+ */
+function setupInfoPanel() {
+    const infoToggle = document.getElementById('infoToggle');
+    const infoPanel = document.getElementById('infoPanel');
+    
+    if (infoToggle && infoPanel) {
+        infoToggle.addEventListener('click', () => {
+            infoToggle.classList.toggle('active');
+            infoPanel.classList.toggle('active');
+        });
+    }
+}
 
+/**
+ * Updates the status indicator based on current state
+ */
+function updateStatusIndicator(state, message = null) {
+    const statusIndicator = document.getElementById('statusIndicator');
+    const statusTitle = statusIndicator ? statusIndicator.querySelector('.status-title') : null;
+    const statusIcon = statusIndicator ? statusIndicator.querySelector('.status-icon') : null;
+    const iconElement = statusIcon ? statusIcon.querySelector('i') : null;
+    
+    if (!statusIndicator || !statusTitle || !statusIcon || !iconElement) return;
+    
+    // Reset all classes
+    statusIcon.classList.remove('waiting', 'running', 'success', 'error');
+    
+    switch (state) {
+        case 'waiting':
+            statusTitle.textContent = 'Waiting to start';
+            statusIcon.classList.add('waiting');
+            iconElement.className = 'fas fa-clock';
+            break;
+        case 'running':
+            statusTitle.textContent = 'Analysis in progress';
+            statusIcon.classList.add('running');
+            iconElement.className = 'fas fa-sync-alt fa-spin';
+            break;
+        case 'success':
+            statusTitle.textContent = 'Analysis complete';
+            statusIcon.classList.add('success');
+            iconElement.className = 'fas fa-check-circle';
+            break;
+        case 'error':
+            statusTitle.textContent = 'Analysis failed';
+            statusIcon.classList.add('error');
+            iconElement.className = 'fas fa-exclamation-circle';
+            break;
+    }
+    
+    // If message is provided, update status message too
+    if (message) {
+        const statusMessageElement = document.getElementById('statusMessage');
+        if (statusMessageElement) {
+            statusMessageElement.textContent = message;
+        }
+        
+        // Also update console status with complementary information
+        const consoleStatus = document.getElementById('consoleStatus') || 
+                             document.getElementById('virusConsoleStatus') || 
+                             document.getElementById('metaConsoleStatus');
+        
+        if (consoleStatus) {
+            // Use different messages for console status to avoid duplication
+            if (state === 'success') {
+                consoleStatus.textContent = 'Process completed. Check console for details.';
+            } else if (state === 'error') {
+                consoleStatus.textContent = 'Error occurred. See console output for details.';
+            } else if (state === 'running') {
+                consoleStatus.textContent = 'Executing commands...';
+            } else {
+                consoleStatus.textContent = 'Waiting for analysis to start...';
+            }
+        }
+    }
+}
 
 /**
  * Toggles QC settings panel visibility
@@ -201,9 +261,8 @@ function getQcParams(prefix = '') {
     return params;
 }
 
-
 // ============================================================================
-// Results Page Management
+// Page Setup Functions
 // ============================================================================
 
 /**
@@ -251,6 +310,19 @@ function setupResultsPage() {
         hideElement('loadingResults');
         showElement('errorResults');
     });
+}
+
+/**
+ * Filters results based on search term
+ */
+function filterResults(searchTerm, results) {
+    if (!searchTerm) return results;
+    searchTerm = searchTerm.toLowerCase();
+    return results.filter(result => 
+        result.name.toLowerCase().includes(searchTerm) ||
+        result.toolType.toLowerCase().includes(searchTerm) ||
+        new Date(result.date).toLocaleString().toLowerCase().includes(searchTerm)
+    );
 }
 
 /**
@@ -308,12 +380,12 @@ function updateResultsTable(resultFolders) {
                 comparison = a.toolType.localeCompare(b.toolType);
                 break;
             case 'date':
-                comparison = new Date(a.date) - new Date(b.date);  // Changed from b.date - a.date
+                comparison = new Date(a.date) - new Date(b.date);
                 break;
             default:
                 comparison = 0;
         }
-        return currentSortDirection === 'asc' ? comparison : -comparison;  // No change needed here
+        return currentSortDirection === 'asc' ? comparison : -comparison;
     });
     
     tableBody.innerHTML = '';
@@ -442,7 +514,7 @@ function updateResultsTable(resultFolders) {
         const previewRow = tableBody.insertRow();
         previewRow.className = 'preview-row hidden';
         const previewCell = previewRow.insertCell();
-        previewCell.colSpan = 7; // Updated for the new QC column
+        previewCell.colSpan = 7;
         previewCell.innerHTML = `<div class="preview-content">Loading preview...</div>`;
 
         // Preview functionality
@@ -486,10 +558,9 @@ function updateResultsTable(resultFolders) {
     });
 }
 
-// ============================================================================
-// PDF Viewer Setup
-// ============================================================================
-
+/**
+ * Sets up the PDF viewer
+ */
 function setupPdfViewer() {
     const backButton = document.getElementById('backButton');
     const openExternal = document.getElementById('openExternal');
@@ -544,13 +615,6 @@ function setupPdfViewer() {
     });
 }
 
-// ============================================================================
-// Analysis Page Setup Functions
-// ============================================================================
-
-/**
- * Sets up the bacteria analysis page
- */
 /**
  * Sets up the bacteria analysis page
  */
@@ -558,7 +622,7 @@ function setupBacteriaPage() {
     // Initialize collapsible info panel
     setupInfoPanel();
     
-    // Remove any existing listeners first
+    // Remove any existing listeners to prevent memory leaks
     ipcRenderer.removeAllListeners('isolate-command-output');
     ipcRenderer.removeAllListeners('isolate-complete-success');
     ipcRenderer.removeAllListeners('isolate-complete-failure');
@@ -585,7 +649,6 @@ function setupBacteriaPage() {
         const field = document.getElementById(id);
         if (field) {
             field.placeholder = defaultValue.toString();
-            // Don't set value directly to allow user changes
         }
     };
 
@@ -601,7 +664,7 @@ function setupBacteriaPage() {
     // Setup collapsible console
     setupCollapsibleConsole('consoleHeader', 'consoleBody', 'consoleToggle', 'consoleStatus', 'output');
 
-    // Add validation for numeric fields to provide immediate feedback
+    // Add validation for numeric fields
     const qcNumericFields = [
         'minLength', 'maxLength', 'minPhred', 
         'minInternalPhred', 'minAverageQuality', 
@@ -769,6 +832,7 @@ function setupBacteriaPage() {
         });
     }
 
+    // Setup event listeners for command output and completion
     ipcRenderer.on('isolate-command-output', (event, { stdout, stderr }) => {
         if (outputElement && currentProcess) {
             if (stdout) {
@@ -824,7 +888,6 @@ function setupBacteriaPage() {
         savePageState('bacteria');
     }
 }
-
 
 /**
  * Sets up the virus analysis page
@@ -1291,87 +1354,45 @@ function setupMetagenomicsPage() {
 }
 
 // ============================================================================
-// New design for bacteria, virus, isolate html
+// Page State Management Functions
 // ============================================================================
 
-
 /**
- * Sets up the collapsible info panel
+ * Saves the current state of a page
  */
-function setupInfoPanel() {
-    const infoToggle = document.getElementById('infoToggle');
-    const infoPanel = document.getElementById('infoPanel');
+function savePageState(page) {
+    if (!page) return;
     
-    if (infoToggle && infoPanel) {
-        infoToggle.addEventListener('click', () => {
-            infoToggle.classList.toggle('active');
-            infoPanel.classList.toggle('active');
-        });
-    }
+    pageStates[page] = {
+        output: document.getElementById('output')?.textContent || '',
+        experimentName: document.getElementById('experimentName')?.value || '',
+        statusMessage: document.getElementById('statusMessage')?.textContent || '',
+        showSpinner: document.getElementById('loadingSpinner')?.style.display === 'block',
+        showResultButtons: document.getElementById('resultButtons')?.style.display === 'block',
+        showCancelButton: document.getElementById('cancelAnalysis')?.style.display === 'block'
+    };
 }
 
 /**
- * Updates the status indicator based on current state
+ * Loads the saved state of a page
  */
-function updateStatusIndicator(state, message = null) {
-    const statusIndicator = document.getElementById('statusIndicator');
-    const statusTitle = statusIndicator ? statusIndicator.querySelector('.status-title') : null;
-    const statusIcon = statusIndicator ? statusIndicator.querySelector('.status-icon') : null;
-    const iconElement = statusIcon ? statusIcon.querySelector('i') : null;
+function loadPageState(page) {
+    if (!page || !pageStates[page]) return;
     
-    if (!statusIndicator || !statusTitle || !statusIcon || !iconElement) return;
-    
-    // Reset all classes
-    statusIcon.classList.remove('waiting', 'running', 'success', 'error');
-    
-    switch (state) {
-        case 'waiting':
-            statusTitle.textContent = 'Waiting to start';
-            statusIcon.classList.add('waiting');
-            iconElement.className = 'fas fa-clock';
-            break;
-        case 'running':
-            statusTitle.textContent = 'Analysis in progress';
-            statusIcon.classList.add('running');
-            iconElement.className = 'fas fa-sync-alt fa-spin';
-            break;
-        case 'success':
-            statusTitle.textContent = 'Analysis complete';
-            statusIcon.classList.add('success');
-            iconElement.className = 'fas fa-check-circle';
-            break;
-        case 'error':
-            statusTitle.textContent = 'Analysis failed';
-            statusIcon.classList.add('error');
-            iconElement.className = 'fas fa-exclamation-circle';
-            break;
-    }
-    
-    // If message is provided, update status message too
-    if (message) {
-        const statusMessageElement = document.getElementById('statusMessage');
-        if (statusMessageElement) {
-            statusMessageElement.textContent = message;
-        }
-        
-        // Also update console status with complementary information
-        const consoleStatus = document.getElementById('consoleStatus') || 
-                             document.getElementById('virusConsoleStatus') || 
-                             document.getElementById('metaConsoleStatus');
-        
-        if (consoleStatus) {
-            // Use different messages for console status to avoid duplication
-            if (state === 'success') {
-                consoleStatus.textContent = 'Process completed. Check console for details.';
-            } else if (state === 'error') {
-                consoleStatus.textContent = 'Error occurred. See console output for details.';
-            } else if (state === 'running') {
-                consoleStatus.textContent = 'Executing commands...';
-            } else {
-                consoleStatus.textContent = 'Waiting for analysis to start...';
-            }
-        }
-    }
+    const state = pageStates[page];
+    const outputElement = document.getElementById('output');
+    const experimentNameInput = document.getElementById('experimentName');
+    const statusMessage = document.getElementById('statusMessage');
+    const spinner = document.getElementById('loadingSpinner');
+    const resultButtons = document.getElementById('resultButtons');
+    const cancelButton = document.getElementById('cancelAnalysis');
+
+    if (outputElement) outputElement.textContent = state.output;
+    if (experimentNameInput) experimentNameInput.value = state.experimentName;
+    if (statusMessage) statusMessage.textContent = state.statusMessage;
+    if (spinner) spinner.style.display = state.showSpinner ? 'block' : 'none';
+    if (resultButtons) resultButtons.style.display = state.showResultButtons ? 'block' : 'none';
+    if (cancelButton) cancelButton.style.display = state.showCancelButton ? 'block' : 'none';
 }
 
 // ============================================================================
@@ -1483,125 +1504,3 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     });
 });
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-// ============================================================================
-// Currently Unused Functions - Kept for Reference
-// ============================================================================
-
-/**
- * Creates a status cell for the results table
- */
-function createStatusCell(status) {
-    const cell = document.createElement('td');
-    const statusDiv = document.createElement('div');
-    statusDiv.className = 'status-cell';
-    
-    const indicator = document.createElement('span');
-    indicator.className = 'status-indicator';
-    
-    switch(status) {
-        case 'complete':
-            indicator.classList.add('status-success');
-            statusDiv.appendChild(indicator);
-            statusDiv.appendChild(document.createTextNode('Complete'));
-            break;
-        case 'pending':
-            indicator.classList.add('status-pending');
-            statusDiv.appendChild(indicator);
-            statusDiv.appendChild(document.createTextNode('Processing'));
-            break;
-        default:
-            indicator.classList.add('status-error');
-            statusDiv.appendChild(indicator);
-            statusDiv.appendChild(document.createTextNode('Error'));
-    }
-    
-    cell.appendChild(statusDiv);
-    return cell;
-}
-
-/**
- * Filters results based on search term
- */
-function filterResults(searchTerm, results) {
-    if (!searchTerm) return results;
-    searchTerm = searchTerm.toLowerCase();
-    return results.filter(result => 
-        result.name.toLowerCase().includes(searchTerm) ||
-        result.toolType.toLowerCase().includes(searchTerm) ||
-        new Date(result.date).toLocaleString().toLowerCase().includes(searchTerm)
-    );
-}
-
-/**
- * Saves the current state of a page
- */
-function savePageState(page) {
-    if (!page) return;
-    
-    pageStates[page] = {
-        output: document.getElementById('output')?.textContent || '',
-        experimentName: document.getElementById('experimentName')?.value || '',
-        statusMessage: document.getElementById('statusMessage')?.textContent || '',
-        showSpinner: document.getElementById('loadingSpinner')?.style.display === 'block',
-        showResultButtons: document.getElementById('resultButtons')?.style.display === 'block',
-        showCancelButton: document.getElementById('cancelAnalysis')?.style.display === 'block'
-    };
-}
-
-/**
- * Loads the saved state of a page
- */
-function loadPageState(page) {
-    if (!page || !pageStates[page]) return;
-    
-    const state = pageStates[page];
-    const outputElement = document.getElementById('output');
-    const experimentNameInput = document.getElementById('experimentName');
-    const statusMessage = document.getElementById('statusMessage');
-    const spinner = document.getElementById('loadingSpinner');
-    const resultButtons = document.getElementById('resultButtons');
-    const cancelButton = document.getElementById('cancelAnalysis');
-
-    if (outputElement) outputElement.textContent = state.output;
-    if (experimentNameInput) experimentNameInput.value = state.experimentName;
-    if (statusMessage) statusMessage.textContent = state.statusMessage;
-    if (spinner) spinner.style.display = state.showSpinner ? 'block' : 'none';
-    if (resultButtons) resultButtons.style.display = state.showResultButtons ? 'block' : 'none';
-    if (cancelButton) cancelButton.style.display = state.showCancelButton ? 'block' : 'none';
-}

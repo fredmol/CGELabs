@@ -1,5 +1,15 @@
 # Changelog
 
+
+
+## [1.3.1] - 2025-02-26
+### Refactored
+- Comprehensive code restructuring across main.js, renderer.js and styles.css
+  - Improved code organization and readability
+  - Eliminated redundant code patterns
+  - Enhanced performance and maintainability
+
+
 ## [1.3.0] - 2025-02-26
 ### Added
 - Collapsible Information Panels
