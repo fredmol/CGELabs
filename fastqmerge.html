@@ -1,27 +1,118 @@
 <!DOCTYPE html>
-<html>
+<html lang="en">
 <head>
-    <title>FastQ Merge</title>
+    <meta charset="UTF-8">
+    <title>FastQ Merge - CGELabs</title>
     <link rel="stylesheet" type="text/css" href="styles.css">
-    <!-- Other head elements as in your Bacteria Page -->
 </head>
 <body>
-    <div>
-        <h1>FastQ Merge</h1>
-        <p>Select a folder and enter the merge name to begin the merge process.</p>
-        <button id="selectFolder">Select Folder</button>
-        <p id="folderPath">No folder selected</p>
-        <input type="text" id="mergeNameInput" placeholder="Enter merge name"><br><br>
-        <button id="beginMerge">Begin Merge</button>
-        <pre id="mergeOutput"></pre>
+    <div class="page-container">
+        <!-- Header with collapsible info panel -->
+        <div class="header-card">
+            <div class="header-content">
+                <div class="header-main">
+                    <h1>FastQ Merge</h1>
+                    <p class="subtitle">Combine multiple FastQ files into a single output</p>
+                </div>
+                <div class="header-icon">
+                    <i class="fas fa-compress-alt"></i>
+                </div>
+            </div>
+            <div class="info-toggle" id="infoToggle">
+                <span>About This Tool</span>
+                <i class="fas fa-chevron-down"></i>
+            </div>
+            <div class="info-panel" id="infoPanel">
+                <p>This tool allows you to merge multiple FastQ files:</p>
+                <ul>
+                    <li>Select a folder containing multiple FastQ files</li>
+                    <li>Provide a name for the merged output</li>
+                    <li>All compatible files in the folder will be merged automatically</li>
+                    <li>The output will be saved as a single FastQ file</li>
+                </ul>
+            </div>
+        </div>
+
+        <!-- Input card -->
+        <div class="content-card">
+            <h2 class="card-title">Merge Setup</h2>
+            <div class="card-content">
+                <div class="input-group">
+                    <label class="input-label">FastQ Files Directory</label>
+                    <div class="file-input-wrapper">
+                        <input type="text" id="folderPath" placeholder="No folder selected" readonly>
+                        <button id="selectFolder" class="file-select-button">
+                            <i class="fas fa-folder-open"></i> Browse...
+                        </button>
+                    </div>
+                </div>
+
+                <div class="input-group">
+                    <label for="mergeNameInput" class="input-label">Output File Name</label>
+                    <input type="text" id="mergeNameInput" placeholder="Enter a name for the merged output">
+                    <p id="nameWarning" class="warning-text"></p>
+                </div>
+
+                <div class="button-row">
+                    <button id="beginMerge" class="primary-button">
+                        <i class="fas fa-compress-alt"></i> Begin Merge
+                    </button>
+                    <button id="cancelMerge" class="danger-button" style="display: none;">
+                        <i class="fas fa-stop-circle"></i> Cancel Merge
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Status and output card -->
+        <div class="content-card">
+            <h2 class="card-title">Merge Status</h2>
+            <div class="card-content">
+                <div class="status-panel">
+                    <div class="status-indicator" id="statusIndicator">
+                        <div class="status-icon waiting">
+                            <i class="fas fa-clock"></i>
+                        </div>
+                        <div class="status-details">
+                            <h3 class="status-title">Waiting to start</h3>
+                            <p id="statusMessage" class="status-message">Select a folder and enter a name to begin</p>
+                        </div>
+                    </div>
+                    <div id="loadingSpinner" class="spinner-container" style="display:none;">
+                        <div class="spinner"></div>
+                    </div>
+                </div>
+
+                <div class="console-container">
+                    <div class="console-header" id="mergeConsoleHeader">
+                        <div class="console-status" id="mergeConsoleStatus"></div>
+                        <button class="console-toggle" id="mergeConsoleToggle">Show</button>
+                    </div>
+                    <div class="console-body" id="mergeConsoleBody">
+                        <pre id="mergeOutput" class="console-output"></pre>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Results card (initially hidden) -->
+        <div id="resultsCard" class="content-card" style="display:none;">
+            <h2 class="card-title">Merge Results</h2>
+            <div class="card-content" id="resultButtons">
+                <div class="result-buttons">
+                    <button id="openResults" class="result-button">
+                        <i class="fas fa-folder-open"></i>
+                        <span>Open Results Folder</span>
+                    </button>
+                    <button id="openMerged" class="result-button">
+                        <i class="fas fa-file-alt"></i>
+                        <span>View Merged File Info</span>
+                    </button>
+                </div>
+            </div>
+        </div>
     </div>
 
-    <div id="loadingSpinner" style="display:none; margin-top: 20px;">
-        <div class="spinner"></div>
-    </div>
-    <p id="statusMessage">Waiting to start merge...</p>
-
-    <!-- Include other scripts and HTML content as needed -->
     <script src="renderer.js"></script>
 </body>
 </html>

@@ -1,6 +1,7 @@
 <!DOCTYPE html>
-<html>
+<html lang="en">
 <head>
+    <meta charset="UTF-8">
     <title>CGE Labs</title>
     <link rel="stylesheet" type="text/css" href="styles.css">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
@@ -31,40 +32,79 @@
 </div>
 
 <div class="main-content">
-    <div class="welcome-container">
-        <div class="welcome-header">
-            <img src="logo_256.png" alt="Logo" class="welcome-logo">
-            <h1>Welcome to CGE Labs</h1>
-            <p class="welcome-subtitle">Advanced Bioinformatics Analysis Platform</p>
+    <!-- Hero section -->
+    <div class="hero-section">
+        <img src="logo_256.png" alt="Logo" class="hero-logo">
+        <h1>CGE Labs</h1>
+        <p class="hero-subtitle">Advanced Bioinformatics Analysis Platform</p>
+    </div>
+    
+    <!-- All Tools in a unified grid -->
+    <div class="tools-container">
+        <!-- Analysis Tools -->
+        <div class="tools-category">
+            <h2 class="category-title">Analysis Tools</h2>
+            
+            <div class="tool-card analysis-tool" data-tool="bacteria">
+                <div class="tool-icon">
+                    <i class="fas fa-bacteria"></i>
+                </div>
+                <div class="tool-content">
+                    <h3>Bacterial Analysis</h3>
+                    <p>Species identification, AMR detection, and virulence analysis</p>
+                </div>
+            </div>
+            
+            <div class="tool-card analysis-tool" data-tool="virus">
+                <div class="tool-icon">
+                    <i class="fas fa-virus"></i>
+                </div>
+                <div class="tool-content">
+                    <h3>Viral Analysis</h3>
+                    <p>Comprehensive viral genome analysis and typing</p>
+                </div>
+            </div>
+            
+            <div class="tool-card analysis-tool" data-tool="metagenomics">
+                <div class="tool-icon">
+                    <i class="fas fa-dna"></i>
+                </div>
+                <div class="tool-content">
+                    <h3>Metagenomics</h3>
+                    <p>Advanced metagenomic sequence analysis</p>
+                </div>
+            </div>
         </div>
         
-        <div class="features-grid">
-            <div class="feature-card">
-                <i class="fas fa-bacteria"></i>
-                <h3>Bacterial Analysis</h3>
-                <p>Species identification, AMR detection, and virulence analysis</p>
+        <!-- Utility Tools -->
+        <div class="tools-category">
+            <h2 class="category-title">Utility Tools</h2>
+            
+            <div class="tool-card utility-tool" data-tool="fastqmerge">
+                <div class="tool-icon">
+                    <i class="fas fa-compress-alt"></i>
+                </div>
+                <div class="tool-content">
+                    <h3>FastQ Merge</h3>
+                    <p>Combine multiple FastQ files into a single output</p>
+                </div>
             </div>
-            <div class="feature-card">
-                <i class="fas fa-virus"></i>
-                <h3>Viral Analysis</h3>
-                <p>Comprehensive viral genome analysis and typing</p>
-            </div>
-            <div class="feature-card">
-                <i class="fas fa-dna"></i>
-                <h3>Metagenomics</h3>
-                <p>Advanced metagenomic sequence analysis</p>
-            </div>
-            <div class="feature-card">
-                <i class="fas fa-chart-bar"></i>
-                <h3>Results</h3>
-                <p>View and manage analysis results and reports</p>
-            </div>
-            <div class="feature-card">
-                <i class="fas fa-compress-alt"></i>
-                <h3>FastQ Tools</h3>
-                <p>Efficient FastQ file processing and management</p>
+            
+            <div class="tool-card utility-tool" data-tool="results">
+                <div class="tool-icon">
+                    <i class="fas fa-chart-bar"></i>
+                </div>
+                <div class="tool-content">
+                    <h3>Results</h3>
+                    <p>View and manage analysis results and reports</p>
+                </div>
             </div>
         </div>
+    </div>
+    
+    <!-- Footer info -->
+    <div class="info-footer">
+        <p>CGE Labs - Center for Genomic Epidemiology</p>
     </div>
 </div>
 

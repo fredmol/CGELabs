@@ -1,6 +1,27 @@
 # Changelog
 
+## [1.4.0] - 2025-02-27
+### Enhanced
+- File Selection System
+  - Fixed issue with file type selection dialogs
+  - Implemented native file dialogs with proper file type filtering
+  - Added folder icons to browse buttons for better visual cues
 
+### Redesigned
+- Results Page
+  - Improved table layout with better spacing and color scheme
+  - Simplified action buttons for better usability
+  - Added direct folder access buttons for each result
+
+- FastQ Merge Tool
+  - Updated interface to match other analysis tools
+  - Added consistent styling and functionality
+  - Improved console output and status indicators
+  - Enhanced result display formatting
+
+- Landing Page
+  - Completely redesigned a more compact layout
+  - Separated tools into Analysis and Utility categories
 
 ## [1.3.1] - 2025-02-26
 ### Refactored

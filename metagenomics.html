@@ -38,10 +38,13 @@
         <div class="content-card">
             <h2 class="card-title">Analysis Setup</h2>
             <div class="card-content">
+
+                
                 <div class="input-group">
-                    <label for="metagenomicsFileInput" class="input-label">FastQ File</label>
+                    <label for="metagenomicsFileDisplay" class="input-label">FastQ File</label>
                     <div class="file-input-wrapper">
-                        <input type="file" id="metagenomicsFileInput" accept=".fastq,.fastq.gz,.fq,.fq.gz">
+                        <input type="text" id="metagenomicsFileDisplay" placeholder="No file selected" readonly>
+                        <button id="metagenomicsFileSelect" class="file-select-button">Browse...</button>
                     </div>
                     <p id="fileSizeWarning" class="warning-text"></p>
                 </div>

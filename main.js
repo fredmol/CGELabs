@@ -23,7 +23,7 @@ const crypto = require('crypto');
 // Configuration Constants
 // ============================================================================
 const FILE_SIZE_SETTINGS = {
-    MIN_SIZE_MB: 5,    // Minimum file size in MB
+    MIN_SIZE_MB: 10,    // Minimum file size in MB
     MAX_SIZE_GB: 1     // Maximum file size in GB
 };
 
@@ -37,13 +37,13 @@ function createWindow() {
     const iconPath = path.join(__dirname, 'build/icons/logo_256.png');
     
     const win = new BrowserWindow({
-        width: 960,
+        width: 1000,
         height: 720,
         title: 'CGELabs',
         webPreferences: {
             nodeIntegration: true,
             contextIsolation: false,
-            zoomFactor: 0.88,
+            zoomFactor: 0.92,
         },
         icon: iconPath,
     });
@@ -52,7 +52,7 @@ function createWindow() {
     
     // Set zoom after page has loaded
     win.webContents.once('did-finish-load', () => {
-        win.webContents.setZoomFactor(0.88);
+        win.webContents.setZoomFactor(0.92);
     });
 }
 
@@ -534,7 +534,7 @@ ipcMain.handle('check-file-size', (event, filePath) => {
         if (fileSizeMB < FILE_SIZE_SETTINGS.MIN_SIZE_MB) {
             return {
                 warning: true,
-                message: `Warning: small dataset (${fileSizeMB.toFixed(1)} MB). This may indicate insufficient sequencing depth.`
+                message: `Warning: small dataset (${fileSizeMB.toFixed(1)} MB). This may indicate low sequencing depth.`
             };
         }
 
@@ -550,6 +550,21 @@ ipcMain.handle('check-file-size', (event, filePath) => {
         console.error('Error checking file size:', error);
         return { warning: false };
     }
+});
+
+
+// File dialog handler for selecting FASTQ files
+ipcMain.handle('open-fastq-dialog', async (event) => {
+  const result = await dialog.showOpenDialog({
+    properties: ['openFile'],
+    filters: [
+      { name: 'FASTQ Files', extensions: ['fastq', 'fastq.gz', 'fq', 'fq.gz'] },
+      { name: 'All Files', extensions: ['*'] }
+    ],
+    title: 'Select FASTQ File'
+  });
+  
+  return result.canceled ? null : result.filePaths[0];
 });
 
 // ============================================================================

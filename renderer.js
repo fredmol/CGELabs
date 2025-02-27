@@ -270,45 +270,28 @@ function getQcParams(prefix = '') {
  */
 function setupResultsPage() {
     console.log('Setting up results page');
-    showElement('loadingResults');
-    hideElement('errorResults');
-    hideElement('resultsTable');
-
-    // Setup header with search and directory button
-    const headerDiv = document.querySelector('.results-header') || document.createElement('div');
-    headerDiv.className = 'results-header';
-    headerDiv.innerHTML = `
-        <div class="search-container">
-            <input type="text" id="searchResults" placeholder="Search results..." class="search-input">
-        </div>
-        <button id="openResultsDir" class="directory-button">Open Results Directory</button>
-    `;
-    const tableContainer = document.getElementById('resultsTable').parentElement;
-    tableContainer.insertBefore(headerDiv, tableContainer.firstChild);
-
-    // Directory button listener
-    document.getElementById('openResultsDir').addEventListener('click', () => {
-        ipcRenderer.invoke('open-results-directory');
-    });
+    const loadingElement = document.getElementById('loadingResults');
+    const errorElement = document.getElementById('errorResults');
+    const tableContainer = document.getElementById('resultsTable');
+    
+    // Show loading spinner
+    if (loadingElement) loadingElement.style.display = 'block';
+    if (errorElement) errorElement.style.display = 'none';
+    if (tableContainer) tableContainer.style.display = 'none';
 
     let allResults = []; // Store all results for filtering
 
     // Load and display results
     ipcRenderer.invoke('get-results').then(resultFolders => {
-        hideElement('loadingResults');
-        showElement('resultsTable');
+        if (loadingElement) loadingElement.style.display = 'none';
+        if (tableContainer) tableContainer.style.display = 'block';
+        
         allResults = resultFolders;
-
-        const searchInput = document.getElementById('searchResults');
-        searchInput.addEventListener('input', () => {
-            updateResultsTable(filterResults(searchInput.value, allResults));
-        });
-
         updateResultsTable(resultFolders);
     }).catch(error => {
         console.error('Error loading results:', error);
-        hideElement('loadingResults');
-        showElement('errorResults');
+        if (loadingElement) loadingElement.style.display = 'none';
+        if (errorElement) errorElement.style.display = 'block';
     });
 }
 
@@ -329,8 +312,53 @@ function filterResults(searchTerm, results) {
  * Updates the results table with filtered data
  */
 function updateResultsTable(resultFolders) {
-    const tableBody = document.getElementById('resultsTable').querySelector('tbody');
-    const tableHead = document.getElementById('resultsTable').querySelector('thead tr');
+    // Create table structure if it doesn't exist
+    const resultsTableContainer = document.getElementById('resultsTable');
+    if (!resultsTableContainer.querySelector('table')) {
+        // Create header with search and directory button
+        const headerDiv = document.createElement('div');
+        headerDiv.className = 'results-header';
+        headerDiv.innerHTML = `
+            <div class="search-container">
+                <input type="text" id="searchResults" placeholder="Search results..." class="search-input">
+            </div>
+            <button id="openResultsDir" class="directory-button">
+                <i class="fas fa-folder-open"></i> Open Results Directory
+            </button>
+        `;
+        resultsTableContainer.appendChild(headerDiv);
+        
+        // Create table
+        const table = document.createElement('table');
+        table.className = 'results-table';
+        table.innerHTML = `
+            <thead>
+                <tr>
+                    <th class="sortable" data-sort="name">Analysis Name <span class="sort-icon"></span></th>
+                    <th class="sortable" data-sort="toolType">Tool Type <span class="sort-icon"></span></th>
+                    <th class="sortable" data-sort="date">Date <span class="sort-icon"></span></th>
+                    <th>Reports</th>
+                    <th>Actions</th>
+                </tr>
+            </thead>
+            <tbody></tbody>
+        `;
+        resultsTableContainer.appendChild(table);
+        
+        // Add directory button event listener
+        document.getElementById('openResultsDir').addEventListener('click', () => {
+            ipcRenderer.invoke('open-results-directory');
+        });
+        
+        // Add search functionality
+        const searchInput = document.getElementById('searchResults');
+        searchInput.addEventListener('input', () => {
+            updateResultsTable(filterResults(searchInput.value, resultFolders));
+        });
+    }
+    
+    const tableBody = document.querySelector('.results-table tbody');
+    const tableHead = document.querySelector('.results-table thead tr');
     
     // Helper function to get sort icon
     function getSortIcon(column) {
@@ -339,26 +367,12 @@ function updateResultsTable(resultFolders) {
     }
     
     // Update headers with sort indicators
-    tableHead.innerHTML = `
-        <th class="sortable" data-sort="name">
-            Analysis Name <span class="sort-icon">${getSortIcon('name')}</span>
-        </th>
-        <th class="sortable" data-sort="toolType">
-            Tool Type <span class="sort-icon">${getSortIcon('toolType')}</span>
-        </th>
-        <th class="sortable" data-sort="date">
-            Date <span class="sort-icon">${getSortIcon('date')}</span>
-        </th>
-        <th>Text Report</th>
-        <th>PDF Report</th>
-        <th>QC Report</th>
-        <th>Actions</th>
-    `;
-
-    // Add click handlers for sortable headers
     tableHead.querySelectorAll('.sortable').forEach(header => {
+        const column = header.dataset.sort;
+        header.querySelector('.sort-icon').innerHTML = getSortIcon(column);
+        
+        // Add click handlers for sortable headers
         header.addEventListener('click', () => {
-            const column = header.dataset.sort;
             if (currentSortColumn === column) {
                 currentSortDirection = currentSortDirection === 'asc' ? 'desc' : 'asc';
             } else {
@@ -391,17 +405,16 @@ function updateResultsTable(resultFolders) {
     tableBody.innerHTML = '';
     
     resultFolders.forEach(folderInfo => {
+        // Create main row
         const row = tableBody.insertRow();
         
-        // Analysis Name with preview toggle
+        // Analysis Name with toggle icon
         const cellName = row.insertCell();
         const nameContainer = document.createElement('div');
-        nameContainer.className = 'name-container';
+        nameContainer.className = 'toggle-details';
         nameContainer.innerHTML = `
-            <div class="name-with-indicator">
-                <span class="folder-name">${folderInfo.name}</span>
-                <span class="details-text">Click to view details</span>
-            </div>
+            <span class="toggle-icon"><i class="fas fa-chevron-right"></i></span>
+            <span class="folder-name">${folderInfo.name}</span>
         `;
         cellName.appendChild(nameContainer);
         
@@ -418,86 +431,61 @@ function updateResultsTable(resultFolders) {
             day: 'numeric',
             hour: '2-digit', 
             minute: '2-digit',
-            second: '2-digit',
             hour12: false 
         });
         
-        // Text Report
-        const cellTextReport = row.insertCell();
+        // Reports - Combined cell for all report links
+        const cellReports = row.insertCell();
+        
         if (folderInfo.reportExists) {
-            const textLink = document.createElement('a');
-            textLink.href = '#';
-            textLink.textContent = 'Open Text Report';
-            textLink.addEventListener('click', (event) => {
-                event.preventDefault();
+            const textLink = document.createElement('button');
+            textLink.className = 'results-action';
+            textLink.innerHTML = '<i class="fas fa-file-alt"></i> Text';
+            textLink.addEventListener('click', () => {
                 ipcRenderer.send('open-file', `${resultsDirectory}/${folderInfo.name}/report.txt`);
             });
-            cellTextReport.appendChild(textLink);
-        } else {
-            cellTextReport.textContent = 'No report available';
+            cellReports.appendChild(textLink);
         }
         
-        // PDF Report
-        const cellPdfReport = row.insertCell();
         if (folderInfo.pdfExists) {
-            const viewLink = document.createElement('a');
-            viewLink.href = '#';
-            viewLink.textContent = 'View in App';
-            viewLink.addEventListener('click', (event) => {
-                event.preventDefault();
-                const pdfPath = path.join(resultsDirectory, folderInfo.name, `${folderInfo.name}_report.pdf`);
-                ipcRenderer.send('show-pdf', pdfPath);
-            });
-            
-            const openLink = document.createElement('a');
-            openLink.href = '#';
-            openLink.textContent = 'Open External';
-            openLink.addEventListener('click', (event) => {
-                event.preventDefault();
+            const pdfLink = document.createElement('button');
+            pdfLink.className = 'results-action';
+            pdfLink.innerHTML = '<i class="fas fa-file-pdf"></i> PDF';
+            pdfLink.addEventListener('click', () => {
                 const pdfPath = path.join(resultsDirectory, folderInfo.name, `${folderInfo.name}_report.pdf`);
                 ipcRenderer.send('open-file', pdfPath);
             });
-            
-            cellPdfReport.appendChild(viewLink);
-            cellPdfReport.appendChild(document.createTextNode(' | '));
-            cellPdfReport.appendChild(openLink);
-        } else {
-            cellPdfReport.textContent = 'No PDF report available';
+            cellReports.appendChild(pdfLink);
         }
 
-        // QC PDF Report
-        const cellQcReport = row.insertCell();
         if (folderInfo.qcPdfExists) {
-            const viewLink = document.createElement('a');
-            viewLink.href = '#';
-            viewLink.textContent = 'View in App';
-            viewLink.addEventListener('click', (event) => {
-                event.preventDefault();
-                const qcPdfPath = path.join(resultsDirectory, folderInfo.name, 'qc', `${folderInfo.name}_qc_report.pdf`);
-                ipcRenderer.send('show-pdf', qcPdfPath);
-            });
-            
-            const openLink = document.createElement('a');
-            openLink.href = '#';
-            openLink.textContent = 'Open External';
-            openLink.addEventListener('click', (event) => { 
-                event.preventDefault();
+            const qcLink = document.createElement('button');
+            qcLink.className = 'results-action';
+            qcLink.innerHTML = '<i class="fas fa-microscope"></i> QC';
+            qcLink.addEventListener('click', () => {
                 const qcPdfPath = path.join(resultsDirectory, folderInfo.name, 'qc', `${folderInfo.name}_qc_report.pdf`);
                 ipcRenderer.send('open-file', qcPdfPath);
             });
-            
-            cellQcReport.appendChild(viewLink);
-            cellQcReport.appendChild(document.createTextNode(' | '));
-            cellQcReport.appendChild(openLink);
-        } else {
-            cellQcReport.textContent = 'No QC report available';
+            cellReports.appendChild(qcLink);
         }
         
-        // Delete button
+        // Actions
         const cellActions = row.insertCell();
+        
+        // Add folder button
+        const folderButton = document.createElement('button');
+        folderButton.className = 'results-action folder';
+        folderButton.innerHTML = '<i class="fas fa-folder-open"></i> Folder';
+        folderButton.addEventListener('click', () => {
+            const folderPath = path.join(resultsDirectory, folderInfo.name);
+            ipcRenderer.send('open-results-directory', folderPath);
+        });
+        cellActions.appendChild(folderButton);
+        
+        // Add delete button
         const deleteButton = document.createElement('button');
-        deleteButton.textContent = 'Delete';
-        deleteButton.className = 'delete-button';
+        deleteButton.className = 'results-action delete';
+        deleteButton.innerHTML = '<i class="fas fa-trash"></i> Delete';
         deleteButton.addEventListener('click', async () => {
             if (confirm(`Are you sure you want to delete ${folderInfo.name}?`)) {
                 const success = await ipcRenderer.invoke('delete-result', folderInfo.name);
@@ -510,49 +498,53 @@ function updateResultsTable(resultFolders) {
         });
         cellActions.appendChild(deleteButton);
 
-        // Preview row
-        const previewRow = tableBody.insertRow();
-        previewRow.className = 'preview-row hidden';
-        const previewCell = previewRow.insertCell();
-        previewCell.colSpan = 7;
-        previewCell.innerHTML = `<div class="preview-content">Loading preview...</div>`;
+        // Create details row
+        const detailsRow = tableBody.insertRow();
+        detailsRow.style.display = 'none';
+        const detailsCell = detailsRow.insertCell();
+        detailsCell.colSpan = 5;
+        detailsCell.innerHTML = `<div class="details-panel">Loading details...</div>`;
 
-        // Preview functionality
-        cellName.addEventListener('click', async () => {
-            const detailsText = nameContainer.querySelector('.details-text');
-            const content = previewCell.querySelector('.preview-content');
+        // Toggle functionality
+        nameContainer.addEventListener('click', async () => {
+            const toggleIcon = nameContainer.querySelector('.toggle-icon');
             
-            if (previewRow.classList.contains('hidden')) {
-                previewRow.classList.remove('hidden');
-                detailsText.textContent = 'Click to hide details';
+            if (detailsRow.style.display === 'none') {
+                detailsRow.style.display = '';
+                toggleIcon.classList.add('open');
+                toggleIcon.innerHTML = '<i class="fas fa-chevron-down"></i>';
+                
+                const detailsPanel = detailsCell.querySelector('.details-panel');
                 
                 try {
                     const reportPath = path.join(resultsDirectory, folderInfo.name, 'report.txt');
-                    const reportContent = await fs.promises.readFile(reportPath, 'utf8');
-                    
-                    const lines = reportContent.split('\n');
-                    const titleLine = lines.find(line => line.includes('Analysis report:'));
-                    const templateLine = lines.find(line => line.includes('Template:'));
-                    const identityLine = lines.find(line => line.includes('Identity:'));
-                    
-                    if (templateLine && identityLine) {
-                        const preview = `
-                            <div class="preview-header">Analysis Details</div>
-                            <div class="preview-details">
+                    if (fs.existsSync(reportPath)) {
+                        const reportContent = await fs.promises.readFile(reportPath, 'utf8');
+                        
+                        const lines = reportContent.split('\n');
+                        const titleLine = lines.find(line => line.includes('Analysis report:'));
+                        const templateLine = lines.find(line => line.includes('Template:'));
+                        const identityLine = lines.find(line => line.includes('Identity:'));
+                        
+                        if (templateLine && identityLine) {
+                            detailsPanel.innerHTML = `
+                                <h3>Analysis Details</h3>
                                 <div><strong>Species:</strong> ${templateLine.split('Template:')[1].trim().split(' chromosome')[0]}</div>
                                 <div><strong>Match Quality:</strong> ${identityLine.trim()}</div>
-                            </div>
-                        `;
-                        content.innerHTML = preview;
+                            `;
+                        } else {
+                            detailsPanel.innerHTML = '<div>No detailed species identification available</div>';
+                        }
                     } else {
-                        content.innerHTML = '<div class="preview-error">No species identification available</div>';
+                        detailsPanel.innerHTML = '<div>No report file found</div>';
                     }
                 } catch (error) {
-                    content.innerHTML = '<div class="preview-error">Error loading preview</div>';
+                    detailsPanel.innerHTML = '<div>Error loading details</div>';
                 }
             } else {
-                previewRow.classList.add('hidden');
-                detailsText.textContent = 'Click to view details';
+                detailsRow.style.display = 'none';
+                toggleIcon.classList.remove('open');
+                toggleIcon.innerHTML = '<i class="fas fa-chevron-right"></i>';
             }
         });
     });
@@ -711,12 +703,24 @@ function setupBacteriaPage() {
         });
     }
 
-    // File size check
-    if (fileInput) {
-        const fileSizeWarning = document.getElementById('fileSizeWarning');
-        fileInput.addEventListener('change', async () => {
-            if (fileInput.files[0]) {
-                const result = await ipcRenderer.invoke('check-file-size', fileInput.files[0].path);
+    // File selection and size check
+    const fileSelect = document.getElementById('fileSelect');
+    const fileDisplay = document.getElementById('fileDisplay');
+    const fileSizeWarning = document.getElementById('fileSizeWarning');
+    let selectedFilePath = null;
+
+    if (fileSelect && fileDisplay) {
+        // Add folder icon to button
+        fileSelect.innerHTML = '<i class="fas fa-folder-open"></i> Browse...';
+        
+        fileSelect.addEventListener('click', async () => {
+            const filePath = await ipcRenderer.invoke('open-fastq-dialog');
+            if (filePath) {
+                selectedFilePath = filePath;
+                fileDisplay.value = path.basename(filePath);
+                
+                // Check file size
+                const result = await ipcRenderer.invoke('check-file-size', filePath);
                 if (result.warning) {
                     fileSizeWarning.textContent = result.message;
                     fileSizeWarning.style.display = 'block';
@@ -729,7 +733,12 @@ function setupBacteriaPage() {
                     statusMessage.style.color = '';
                 }
             } else {
+                // No file was selected (dialog was canceled)
+                selectedFilePath = null;
+                fileDisplay.value = '';
                 fileSizeWarning.style.display = 'none';
+                statusMessage.textContent = 'Select a file and experiment name to begin';
+                statusMessage.style.color = '';
             }
         });
     }
@@ -743,7 +752,7 @@ function setupBacteriaPage() {
     // Begin analysis button handler
     if (beginAnalysisButton) {
         beginAnalysisButton.addEventListener('click', () => {
-            const filePath = fileInput.files[0]?.path;
+            const filePath = selectedFilePath;
             const experimentName = experimentNameInput.value;
             const enableQC = document.getElementById('enableQC')?.checked ?? true;
             
@@ -945,12 +954,24 @@ function setupVirusPage() {
         });
     }
 
-    // File size check
-    if (fileInput) {
-        const fileSizeWarning = document.getElementById('fileSizeWarning');
-        fileInput.addEventListener('change', async () => {
-            if (fileInput.files[0]) {
-                const result = await ipcRenderer.invoke('check-file-size', fileInput.files[0].path);
+    // File selection and size check
+    const fileSelect = document.getElementById('virusFileSelect');
+    const fileDisplay = document.getElementById('virusFileDisplay');
+    const fileSizeWarning = document.getElementById('fileSizeWarning');
+    let selectedFilePath = null;
+
+    if (fileSelect && fileDisplay) {
+        // Add folder icon to button
+        fileSelect.innerHTML = '<i class="fas fa-folder-open"></i> Browse...';
+        
+        fileSelect.addEventListener('click', async () => {
+            const filePath = await ipcRenderer.invoke('open-fastq-dialog');
+            if (filePath) {
+                selectedFilePath = filePath;
+                fileDisplay.value = path.basename(filePath);
+                
+                // Check file size
+                const result = await ipcRenderer.invoke('check-file-size', filePath);
                 if (result.warning) {
                     fileSizeWarning.textContent = result.message;
                     fileSizeWarning.style.display = 'block';
@@ -963,7 +984,12 @@ function setupVirusPage() {
                     statusMessage.style.color = '';
                 }
             } else {
+                // No file was selected (dialog was canceled)
+                selectedFilePath = null;
+                fileDisplay.value = '';
                 fileSizeWarning.style.display = 'none';
+                statusMessage.textContent = 'Select a file and experiment name to begin';
+                statusMessage.style.color = '';
             }
         });
     }
@@ -977,7 +1003,7 @@ function setupVirusPage() {
     // Begin analysis button handler
     if (beginAnalysisButton) {
         beginAnalysisButton.addEventListener('click', () => {
-            const filePath = fileInput.files[0]?.path;
+            const filePath = selectedFilePath;
             const experimentName = experimentNameInput.value;
             const enableQC = document.getElementById('enableVirusQC')?.checked ?? true;
             
@@ -1177,12 +1203,24 @@ function setupMetagenomicsPage() {
         });
     }
 
-    // File size check
-    if (fileInput) {
-        const fileSizeWarning = document.getElementById('fileSizeWarning');
-        fileInput.addEventListener('change', async () => {
-            if (fileInput.files[0]) {
-                const result = await ipcRenderer.invoke('check-file-size', fileInput.files[0].path);
+    // File selection and size check
+    const fileSelect = document.getElementById('metagenomicsFileSelect');
+    const fileDisplay = document.getElementById('metagenomicsFileDisplay');
+    const fileSizeWarning = document.getElementById('fileSizeWarning');
+    let selectedFilePath = null;
+
+    if (fileSelect && fileDisplay) {
+        // Add folder icon to button
+        fileSelect.innerHTML = '<i class="fas fa-folder-open"></i> Browse...';
+        
+        fileSelect.addEventListener('click', async () => {
+            const filePath = await ipcRenderer.invoke('open-fastq-dialog');
+            if (filePath) {
+                selectedFilePath = filePath;
+                fileDisplay.value = path.basename(filePath);
+                
+                // Check file size
+                const result = await ipcRenderer.invoke('check-file-size', filePath);
                 if (result.warning) {
                     fileSizeWarning.textContent = result.message;
                     fileSizeWarning.style.display = 'block';
@@ -1195,7 +1233,12 @@ function setupMetagenomicsPage() {
                     statusMessage.style.color = '';
                 }
             } else {
+                // No file was selected (dialog was canceled)
+                selectedFilePath = null;
+                fileDisplay.value = '';
                 fileSizeWarning.style.display = 'none';
+                statusMessage.textContent = 'Select a file and experiment name to begin';
+                statusMessage.style.color = '';
             }
         });
     }
@@ -1209,7 +1252,7 @@ function setupMetagenomicsPage() {
     // Begin analysis button handler
     if (beginAnalysisButton) {
         beginAnalysisButton.addEventListener('click', () => {
-            const filePath = fileInput.files[0]?.path;
+            const filePath = selectedFilePath;
             const experimentName = experimentNameInput.value;
             const enableQC = document.getElementById('enableMetagenomicsQC')?.checked ?? true;
             
@@ -1353,6 +1396,181 @@ function setupMetagenomicsPage() {
     }
 }
 
+
+
+/**
+ * Sets up the FastQ merge page functionality
+ */
+function setupFastqMergePage() {
+    // Initialize collapsible info panel
+    setupInfoPanel();
+    
+    // Remove any existing listeners
+    ipcRenderer.removeAllListeners('merge-command-output');
+    ipcRenderer.removeAllListeners('merge-complete-success');
+    ipcRenderer.removeAllListeners('merge-complete-failure');
+
+    const folderPathDisplay = document.getElementById('folderPath');
+    const selectFolderButton = document.getElementById('selectFolder');
+    const mergeNameInput = document.getElementById('mergeNameInput');
+    const beginMergeButton = document.getElementById('beginMerge');
+    const cancelMergeButton = document.getElementById('cancelMerge');
+    const outputElement = document.getElementById('mergeOutput');
+    const spinner = document.getElementById('loadingSpinner');
+    const statusMessage = document.getElementById('statusMessage');
+    const nameWarning = document.getElementById('nameWarning');
+    const resultsCard = document.getElementById('resultsCard');
+    const openResults = document.getElementById('openResults');
+    const openMerged = document.getElementById('openMerged');
+    
+    // Setup collapsible console
+    setupCollapsibleConsole('mergeConsoleHeader', 'mergeConsoleBody', 'mergeConsoleToggle', 'mergeConsoleStatus', 'mergeOutput');
+    
+    let selectedFolderPath = null;
+    
+    // Handle folder selection
+    if (selectFolderButton) {
+        selectFolderButton.addEventListener('click', async () => {
+            const folderPath = await ipcRenderer.invoke('select-folder');
+            if (folderPath) {
+                selectedFolderPath = folderPath;
+                folderPathDisplay.value = folderPath;
+                statusMessage.textContent = 'Folder selected. Enter a name and click Begin Merge.';
+            }
+        });
+    }
+    
+    // Check for existing folder and validate merge name
+    if (mergeNameInput) {
+        mergeNameInput.addEventListener('input', () => {
+            const name = mergeNameInput.value;
+            const validation = validateExperimentName(name);
+            
+            if (!validation.isValid) {
+                nameWarning.textContent = validation.message;
+                nameWarning.style.display = 'block';
+                nameWarning.style.color = '#e74c3c';  // Red color for warning
+                beginMergeButton.disabled = true;
+            } else {
+                nameWarning.style.display = 'none';
+                beginMergeButton.disabled = false;
+            }
+        });
+    }
+    
+    // Begin merge button handler
+    if (beginMergeButton) {
+        beginMergeButton.addEventListener('click', () => {
+            if (!selectedFolderPath) {
+                alert('Please select a folder first.');
+                return;
+            }
+            
+            const mergeName = mergeNameInput.value;
+            if (!mergeName) {
+                alert('Please enter a name for the merged output.');
+                return;
+            }
+            
+            // Update status to running
+            updateStatusIndicator('running', 'Merge is currently running...');
+            
+            // Hide results card
+            if (resultsCard) {
+                resultsCard.style.display = 'none';
+            }
+            
+            outputHistory[mergeName] = '';
+            outputElement.textContent = '';
+            currentProcess = mergeName;
+            cancelMergeButton.style.display = 'block';
+            ipcRenderer.send('run-merge-command', selectedFolderPath, mergeName);
+            spinner.style.display = 'block';
+            statusMessage.textContent = 'Merging files... Please wait.';
+        });
+    }
+    
+    // Cancel merge button handler
+    if (cancelMergeButton) {
+        cancelMergeButton.addEventListener('click', () => {
+            if (currentProcess) {
+                ipcRenderer.send('cancel-analysis', currentProcess);
+                cancelMergeButton.style.display = 'none';
+                spinner.style.display = 'none';
+                updateStatusIndicator('waiting', 'Merge cancelled.');
+            }
+        });
+    }
+    
+    // Results buttons handlers
+    if (openResults) {
+        openResults.addEventListener('click', () => {
+            const mergeName = mergeNameInput.value;
+            const folderPath = path.join(resultsDirectory, mergeName);
+            ipcRenderer.send('open-results-directory', folderPath);
+        });
+    }
+    
+    if (openMerged) {
+        openMerged.addEventListener('click', () => {
+            const mergeName = mergeNameInput.value;
+            const textPath = path.join(resultsDirectory, mergeName, 'merge_info.txt');
+            
+            // Check if file exists first
+            if (fs.existsSync(textPath)) {
+                ipcRenderer.send('open-file', textPath);
+            } else {
+                alert('Merge info file not found.');
+            }
+        });
+    }
+    
+    // Event listeners for command output and completion
+    ipcRenderer.on('merge-command-output', (event, { stdout, stderr }) => {
+        if (outputElement && currentProcess) {
+            if (stdout) {
+                outputHistory[currentProcess] = outputHistory[currentProcess] || '';
+                outputHistory[currentProcess] += stdout + '\n';
+                outputElement.textContent = outputHistory[currentProcess];
+                // Update console status
+                updateConsoleStatus('mergeConsoleStatus', stdout);
+            }
+            if (stderr) {
+                outputHistory[currentProcess] = outputHistory[currentProcess] || '';
+                outputHistory[currentProcess] += stderr + '\n';
+                outputElement.textContent = outputHistory[currentProcess];
+                // Update console status
+                updateConsoleStatus('mergeConsoleStatus', stderr);
+            }
+            // Only scroll if console is expanded
+            const consoleBody = document.getElementById('mergeConsoleBody');
+            if (consoleBody && consoleBody.classList.contains('expanded')) {
+                scrollToBottom(outputElement);
+            }
+        }
+    });
+    
+    ipcRenderer.on('merge-complete-success', () => {
+        spinner.style.display = 'none';
+        cancelMergeButton.style.display = 'none';
+        updateStatusIndicator('success', 'Merge completed successfully.');
+        if (resultsCard) {
+            resultsCard.style.display = 'block';
+        }
+        currentProcess = null;
+    });
+    
+    ipcRenderer.on('merge-complete-failure', (event, errorMessage) => {
+        spinner.style.display = 'none';
+        cancelMergeButton.style.display = 'none';
+        updateStatusIndicator('error', 'Merge failed. Check the console for details.');
+        if (resultsCard) {
+            resultsCard.style.display = 'none';
+        }
+        currentProcess = null;
+    });
+}
+
 // ============================================================================
 // Page State Management Functions
 // ============================================================================
@@ -1420,57 +1638,38 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     });
     
-    // Make feature cards clickable if they exist (on index page)
-    document.querySelectorAll('.feature-card').forEach(card => {
-        card.addEventListener('click', function() {
+    // Make tool buttons clickable
+    document.addEventListener('click', function(event) {
+        // Check if clicked element is inside a tool card
+        const toolCard = event.target.closest('.tool-card');
+        
+        if (toolCard) {
             document.body.classList.remove('index-page');
+            const toolName = toolCard.getAttribute('data-tool');
             
-            // Get the text from h3 and convert to lowercase for page name
-            const heading = this.querySelector('h3').textContent.toLowerCase();
-            let pageName;
-            
-            // Map the heading text to the correct page name
-            switch(heading) {
-                case 'bacterial analysis':
-                    pageName = 'bacteria';
-                    break;
-                case 'viral analysis':
-                    pageName = 'virus';
-                    break;
-                case 'metagenomics':
-                    pageName = 'metagenomics';
-                    break;
-                case 'results':
-                    pageName = 'results';
-                    break;
-                case 'fastq tools':
-                    pageName = 'fastqmerge';
-                    break;
-                default:
-                    pageName = heading;
-            }
-            
-            fetch(pageName + '.html')
+            fetch(toolName + '.html')
                 .then(response => response.text())
                 .then(data => {
                     mainContent.innerHTML = data;
                     mainContent.dispatchEvent(new Event('contentUpdated'));
                     
-                    if (pageName === 'bacteria') {
+                    if (toolName === 'bacteria') {
                         setupBacteriaPage();
-                    } else if (pageName === 'virus') {
+                    } else if (toolName === 'virus') {
                         setupVirusPage();
-                    } else if (pageName === 'metagenomics') {
+                    } else if (toolName === 'metagenomics') {
                         setupMetagenomicsPage();
-                    } else if (pageName === 'results') {
+                    } else if (toolName === 'results') {
                         setupResultsPage();
+                    } else if (toolName === 'fastqmerge') {
+                        setupFastqMergePage();
                     }
                 })
                 .catch(error => {
                     console.error('Error loading page:', error);
                     mainContent.innerHTML = '<div class="error-message">Error loading page</div>';
                 });
-        });
+        }
     });
     
     // Setup navigation
@@ -1494,6 +1693,8 @@ document.addEventListener('DOMContentLoaded', () => {
                             setupMetagenomicsPage();
                         } else if (page === 'results') {
                             setupResultsPage();
+                        } else if (page === 'fastqmerge') {
+                            setupFastqMergePage();
                         }
                     })
                     .catch(error => {
@@ -1503,4 +1704,5 @@ document.addEventListener('DOMContentLoaded', () => {
             }
         });
     });
+
 });

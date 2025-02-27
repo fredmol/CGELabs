@@ -1,32 +1,41 @@
 <!DOCTYPE html>
-<html>
+<html lang="en">
 <head>
-    <title>Results</title>
+    <meta charset="UTF-8">
+    <title>Results - CGELabs</title>
     <link rel="stylesheet" type="text/css" href="styles.css">
 </head>
 <body>
-    <div>
-        <h1>Results</h1>
-        <div id="loadingResults" class="loading-spinner-container" style="display: none;">
-            <div class="spinner"></div>
-            <p>Loading results...</p>
+    <div class="page-container">
+        <!-- Header with title -->
+        <div class="header-card">
+            <div class="header-content">
+                <div class="header-main">
+                    <h1>Analysis Results</h1>
+                    <p class="subtitle">View and manage your analysis results</p>
+                </div>
+                <div class="header-icon">
+                    <i class="fas fa-chart-bar"></i>
+                </div>
+            </div>
         </div>
-        <div id="errorResults" class="error-message" style="display: none;">
-            Error loading results. Please try refreshing the page.
+
+        <!-- Results content -->
+        <div class="content-card">
+            <h2 class="card-title">Results List</h2>
+            <div class="card-content">
+                <div id="loadingResults" class="loading-spinner-container">
+                    <div class="spinner"></div>
+                    <p>Loading results...</p>
+                </div>
+                <div id="errorResults" class="error-message" style="display: none;">
+                    Error loading results. Please try refreshing the page.
+                </div>
+                <div id="resultsTable" class="results-table-container" style="display: none;">
+                    <!-- Table will be dynamically populated here -->
+                </div>
+            </div>
         </div>
-        <table id="resultsTable">
-            <thead>
-                <tr>
-                    <th>Analysis Name</th>
-                    <th>Text Report</th>
-                    <th>PDF Report</th>
-                    <th>QC Report</th>
-                </tr>
-            </thead>
-            <tbody>
-                <!-- Rows will be dynamically added here -->
-            </tbody>
-        </table>
     </div>
     <script src="renderer.js"></script>
 </body>

@@ -38,10 +38,13 @@
         <div class="content-card">
             <h2 class="card-title">Analysis Setup</h2>
             <div class="card-content">
+
+                
                 <div class="input-group">
-                    <label for="fileInput" class="input-label">FastQ File</label>
+                    <label for="fileDisplay" class="input-label">FastQ File</label>
                     <div class="file-input-wrapper">
-                        <input type="file" id="fileInput" accept=".fastq,.fastq.gz,.fq,.fq.gz">
+                        <input type="text" id="fileDisplay" placeholder="No file selected" readonly>
+                        <button id="fileSelect" class="file-select-button">Browse...</button>
                     </div>
                     <p id="fileSizeWarning" class="warning-text"></p>
                 </div>
