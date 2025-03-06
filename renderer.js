@@ -16,7 +16,7 @@ const { ipcRenderer } = require('electron');
 const path = require('path');
 const fs = require('fs');
 
-const resultsDirectory = '/var/lib/cge_test/results';
+const resultsDirectory = '/var/lib/cge/results';
 
 // Global state management
 let currentProcess = null;
@@ -684,7 +684,7 @@ function setupBacteriaPage() {
         experimentNameInput.addEventListener('input', () => {
             const name = experimentNameInput.value;
             const validation = validateExperimentName(name);
-            const folderPath = path.join('/var/lib/cge_test/results', name);
+            const folderPath = path.join('/var/lib/cge/results', name);
             
             if (!validation.isValid) {
                 nameWarning.textContent = validation.message;
@@ -792,7 +792,7 @@ function setupBacteriaPage() {
     if (cancelButton) {
         cancelButton.addEventListener('click', () => {
             if (currentProcess) {
-                const folderPath = path.join('/var/lib/cge_test/results', currentProcess);
+                const folderPath = path.join('/var/lib/cge/results', currentProcess);
                 ipcRenderer.send('cancel-analysis', currentProcess, folderPath);
                 cancelButton.style.display = 'none';
                 spinner.style.display = 'none';
@@ -805,7 +805,7 @@ function setupBacteriaPage() {
     if (openResults) {
         openResults.addEventListener('click', () => {
             const experimentName = experimentNameInput.value;
-            const folderPath = path.join('/var/lib/cge_test/results', experimentName);
+            const folderPath = path.join('/var/lib/cge/results', experimentName);
             ipcRenderer.send('open-results-directory', folderPath);
         });
     }
@@ -813,7 +813,7 @@ function setupBacteriaPage() {
     if (openPdf) {
         openPdf.addEventListener('click', () => {
             const experimentName = experimentNameInput.value;
-            const pdfPath = path.join('/var/lib/cge_test/results', experimentName, `${experimentName}_report.pdf`);
+            const pdfPath = path.join('/var/lib/cge/results', experimentName, `${experimentName}_report.pdf`);
             ipcRenderer.send('show-pdf', pdfPath);
         });
     }
@@ -821,7 +821,7 @@ function setupBacteriaPage() {
     if (openText) {
         openText.addEventListener('click', () => {
             const experimentName = experimentNameInput.value;
-            const textPath = path.join('/var/lib/cge_test/results', experimentName, 'report.txt');
+            const textPath = path.join('/var/lib/cge/results', experimentName, 'report.txt');
             ipcRenderer.send('open-file', textPath);
         });
     }
@@ -830,7 +830,7 @@ function setupBacteriaPage() {
     if (openQcPdf) {
         openQcPdf.addEventListener('click', () => {
             const experimentName = experimentNameInput.value;
-            const qcPdfPath = path.join('/var/lib/cge_test/results', experimentName, 'qc', `${experimentName}_qc_report.pdf`);
+            const qcPdfPath = path.join('/var/lib/cge/results', experimentName, 'qc', `${experimentName}_qc_report.pdf`);
             
             // Check if file exists before trying to open it
             if (fs.existsSync(qcPdfPath)) {
@@ -935,7 +935,7 @@ function setupVirusPage() {
         experimentNameInput.addEventListener('input', () => {
             const name = experimentNameInput.value;
             const validation = validateExperimentName(name);
-            const folderPath = path.join('/var/lib/cge_test/results', name);
+            const folderPath = path.join('/var/lib/cge/results', name);
             
             if (!validation.isValid) {
                 nameWarning.textContent = validation.message;
@@ -1041,7 +1041,7 @@ function setupVirusPage() {
     if (cancelButton) {
         cancelButton.addEventListener('click', () => {
             if (currentProcess) {
-                const folderPath = path.join('/var/lib/cge_test/results', currentProcess);
+                const folderPath = path.join('/var/lib/cge/results', currentProcess);
                 ipcRenderer.send('cancel-analysis', currentProcess, folderPath);
                 cancelButton.style.display = 'none';
                 spinner.style.display = 'none';
@@ -1054,7 +1054,7 @@ function setupVirusPage() {
     if (openResults) {
         openResults.addEventListener('click', () => {
             const experimentName = experimentNameInput.value;
-            const folderPath = path.join('/var/lib/cge_test/results', experimentName);
+            const folderPath = path.join('/var/lib/cge/results', experimentName);
             ipcRenderer.send('open-results-directory', folderPath);
         });
     }
@@ -1062,7 +1062,7 @@ function setupVirusPage() {
     if (openPdf) {
         openPdf.addEventListener('click', () => {
             const experimentName = experimentNameInput.value;
-            const pdfPath = path.join('/var/lib/cge_test/results', experimentName, `${experimentName}_report.pdf`);
+            const pdfPath = path.join('/var/lib/cge/results', experimentName, `${experimentName}_report.pdf`);
             ipcRenderer.send('show-pdf', pdfPath);
         });
     }
@@ -1070,7 +1070,7 @@ function setupVirusPage() {
     if (openText) {
         openText.addEventListener('click', () => {
             const experimentName = experimentNameInput.value;
-            const textPath = path.join('/var/lib/cge_test/results', experimentName, 'report.txt');
+            const textPath = path.join('/var/lib/cge/results', experimentName, 'report.txt');
             ipcRenderer.send('open-file', textPath);
         });
     }
@@ -1079,7 +1079,7 @@ function setupVirusPage() {
     if (openQcPdf) {
         openQcPdf.addEventListener('click', () => {
             const experimentName = experimentNameInput.value;
-            const qcPdfPath = path.join('/var/lib/cge_test/results', experimentName, 'qc', `${experimentName}_qc_report.pdf`);
+            const qcPdfPath = path.join('/var/lib/cge/results', experimentName, 'qc', `${experimentName}_qc_report.pdf`);
             
             // Check if file exists before trying to open it
             if (fs.existsSync(qcPdfPath)) {
@@ -1184,7 +1184,7 @@ function setupMetagenomicsPage() {
         experimentNameInput.addEventListener('input', () => {
             const name = experimentNameInput.value;
             const validation = validateExperimentName(name);
-            const folderPath = path.join('/var/lib/cge_test/results', name);
+            const folderPath = path.join('/var/lib/cge/results', name);
             
             if (!validation.isValid) {
                 nameWarning.textContent = validation.message;
@@ -1290,7 +1290,7 @@ function setupMetagenomicsPage() {
     if (cancelButton) {
         cancelButton.addEventListener('click', () => {
             if (currentProcess) {
-                const folderPath = path.join('/var/lib/cge_test/results', currentProcess);
+                const folderPath = path.join('/var/lib/cge/results', currentProcess);
                 ipcRenderer.send('cancel-analysis', currentProcess, folderPath);
                 cancelButton.style.display = 'none';
                 spinner.style.display = 'none';
@@ -1303,7 +1303,7 @@ function setupMetagenomicsPage() {
     if (openResults) {
         openResults.addEventListener('click', () => {
             const experimentName = experimentNameInput.value;
-            const folderPath = path.join('/var/lib/cge_test/results', experimentName);
+            const folderPath = path.join('/var/lib/cge/results', experimentName);
             ipcRenderer.send('open-results-directory', folderPath);
         });
     }
@@ -1311,7 +1311,7 @@ function setupMetagenomicsPage() {
     if (openPdf) {
         openPdf.addEventListener('click', () => {
             const experimentName = experimentNameInput.value;
-            const pdfPath = path.join('/var/lib/cge_test/results', experimentName, `${experimentName}_report.pdf`);
+            const pdfPath = path.join('/var/lib/cge/results', experimentName, `${experimentName}_report.pdf`);
             ipcRenderer.send('show-pdf', pdfPath);
         });
     }
@@ -1319,7 +1319,7 @@ function setupMetagenomicsPage() {
     if (openText) {
         openText.addEventListener('click', () => {
             const experimentName = experimentNameInput.value;
-            const textPath = path.join('/var/lib/cge_test/results', experimentName, 'report.txt');
+            const textPath = path.join('/var/lib/cge/results', experimentName, 'report.txt');
             ipcRenderer.send('open-file', textPath);
         });
     }
@@ -1328,7 +1328,7 @@ function setupMetagenomicsPage() {
     if (openQcPdf) {
         openQcPdf.addEventListener('click', () => {
             const experimentName = experimentNameInput.value;
-            const qcPdfPath = path.join('/var/lib/cge_test/results', experimentName, 'qc', `${experimentName}_qc_report.pdf`);
+            const qcPdfPath = path.join('/var/lib/cge/results', experimentName, 'qc', `${experimentName}_qc_report.pdf`);
             
             // Check if file exists before trying to open it
             if (fs.existsSync(qcPdfPath)) {

@@ -1,5 +1,16 @@
 # Changelog
 
+## [1.5.0] - 2025-02-28
+### Enhanced
+- Quality Control System
+  - Improved cgeqc integration with dataset-specific quality assessment
+  - Added specialized thresholds for bacterial, viral, and metagenomic data
+  - Optimized parameter handling between CGELabs and cgeqc
+
+### Fixed
+- Parameter validation in QC tool calls
+- Automatic data type detection and reporting
+
 ## [1.4.0] - 2025-02-27
 ### Enhanced
 - File Selection System

@@ -19,6 +19,14 @@ const os = require('os');
 const fs = require('fs');
 const crypto = require('crypto');
 
+
+// QC presets
+const { 
+    BACTERIAL_TRIM_PRESETS, 
+    VIRAL_TRIM_PRESETS, 
+    METAGENOMIC_TRIM_PRESETS 
+} = require('./qc_presets');
+
 // ============================================================================
 // Configuration Constants
 // ============================================================================
@@ -27,7 +35,7 @@ const FILE_SIZE_SETTINGS = {
     MAX_SIZE_GB: 1     // Maximum file size in GB
 };
 
-const resultsDirectory = '/var/lib/cge_test/results';
+const resultsDirectory = '/var/lib/cge/results';
 let pdfWindow = null;
 
 // ============================================================================
@@ -131,10 +139,18 @@ function getToolType(folderPath) {
 // ============================================================================
 // Quality Control Function
 // ============================================================================
+/**
+ * Runs quality control on the input file using the cgeqc tool
+ * 
+ * @param {string} filePath - Path to the file for QC
+ * @param {string} experimentName - Name of the experiment
+ * @param {Object} qcParams - Custom QC parameters (optional)
+ * @param {string} pipelineType - The type of data being analyzed ('bacterial', 'viral', 'metagenomic')
+ * @returns {Promise} - Promise that resolves with QC results
+ */
 function runQC(filePath, experimentName, qcParams = {}, pipelineType = 'bacterial') {
     return new Promise((resolve, reject) => {
         const homeDirectory = os.homedir();
-        const condaPath = `${homeDirectory}/anaconda3/bin/conda`;
         
         // Create QC directory within results
         const qcDir = path.join(resultsDirectory, experimentName, 'qc');
@@ -146,7 +162,7 @@ function runQC(filePath, experimentName, qcParams = {}, pipelineType = 'bacteria
             return;
         }
 
-        // Build the command with pipe type and any custom parameters
+        // Build the cgeqc command with just the required parameters
         let cgeqcCmd = [
             '-i', filePath,
             '-o', qcDir,
@@ -154,20 +170,36 @@ function runQC(filePath, experimentName, qcParams = {}, pipelineType = 'bacteria
             '--pipeline', pipelineType
         ];
         
-        // Add any custom parameters that have been provided
-        if (qcParams.minLength !== undefined && qcParams.minLength !== null) cgeqcCmd.push('--min_length', qcParams.minLength);
-        if (qcParams.maxLength !== undefined && qcParams.maxLength !== null) cgeqcCmd.push('--max_length', qcParams.maxLength);
-        if (qcParams.minPhred !== undefined && qcParams.minPhred !== null) cgeqcCmd.push('--min_phred', qcParams.minPhred);
-        if (qcParams.minInternalPhred !== undefined && qcParams.minInternalPhred !== null) cgeqcCmd.push('--min_internal_phred', qcParams.minInternalPhred);
-        if (qcParams.minAverageQuality !== undefined && qcParams.minAverageQuality !== null) cgeqcCmd.push('--min_average_quality', qcParams.minAverageQuality);
-        if (qcParams.trim5Prime !== undefined && qcParams.trim5Prime !== null) cgeqcCmd.push('--trim_5_prime', qcParams.trim5Prime);
-        if (qcParams.trim3Prime !== undefined && qcParams.trim3Prime !== null) cgeqcCmd.push('--trim_3_prime', qcParams.trim3Prime);
+        // Only add parameters if they're actually provided and valid
+        // This prevents passing 'null' as a string
+        if (qcParams.minLength != null && qcParams.minLength !== undefined) 
+            cgeqcCmd.push('--min_length', qcParams.minLength);
+        
+        if (qcParams.maxLength != null && qcParams.maxLength !== undefined) 
+            cgeqcCmd.push('--max_length', qcParams.maxLength);
+        
+        if (qcParams.minPhred != null && qcParams.minPhred !== undefined) 
+            cgeqcCmd.push('--min_phred', qcParams.minPhred);
+        
+        if (qcParams.minInternalPhred != null && qcParams.minInternalPhred !== undefined) 
+            cgeqcCmd.push('--min_internal_phred', qcParams.minInternalPhred);
+        
+        if (qcParams.minAverageQuality != null && qcParams.minAverageQuality !== undefined) 
+            cgeqcCmd.push('--min_average_quality', qcParams.minAverageQuality);
+        
+        if (qcParams.trim5Prime != null && qcParams.trim5Prime !== undefined) 
+            cgeqcCmd.push('--trim_5_prime', qcParams.trim5Prime);
+        
+        if (qcParams.trim3Prime != null && qcParams.trim3Prime !== undefined) 
+            cgeqcCmd.push('--trim_3_prime', qcParams.trim3Prime);
 
         // Create a command string for better logging
         let cmdString = 'cgeqc';
         cgeqcCmd.forEach(arg => {
             cmdString += ' ' + arg;
         });
+        
+        console.log(`Running QC command: ${cmdString}`);
 
         const process = spawn('cgeqc', cgeqcCmd);
 
@@ -516,7 +548,7 @@ ipcMain.on('cancel-analysis', (event, experimentName, folderPath) => {
     }
     
     // Delete the output folder if it exists
-    if (folderPath && path.resolve(folderPath).startsWith('/var/lib/cge_test/results')) {
+    if (folderPath && path.resolve(folderPath).startsWith('/var/lib/cge/results')) {
         try {
             fs.rmSync(folderPath, { recursive: true, force: true });
         } catch (error) {
