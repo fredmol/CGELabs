@@ -30,13 +30,69 @@ const {
 // ============================================================================
 // Configuration Constants
 // ============================================================================
+
+// Configuration with environment variable fallbacks
+const CONFIG = {
+    resultsDirectory: process.env.CGE_RESULTS_DIR || '/var/lib/cge/results',
+    databaseDirectory: process.env.CGE_DB_DIR || '/var/lib/cge_test/database/cge_db'
+};
+
 const FILE_SIZE_SETTINGS = {
     MIN_SIZE_MB: 10,    // Minimum file size in MB
     MAX_SIZE_GB: 1     // Maximum file size in GB
 };
 
-const resultsDirectory = '/var/lib/cge/results';
+const resultsDirectory = CONFIG.resultsDirectory;
 let pdfWindow = null;
+
+// condapath
+function getCondaPath() {
+    // Try to find conda in the PATH first (works on most setups)
+    try {
+        const { execSync } = require('child_process');
+        const condaPath = execSync('which conda').toString().trim();
+        return condaPath;
+    } catch (error) {
+        // Fallbacks based on platform
+        const homeDirectory = os.homedir();
+        if (process.platform === 'darwin') {
+            return '/usr/local/anaconda3/bin/conda'; // Common MacOS location
+        } else {
+            return `${homeDirectory}/anaconda3/bin/conda`; // Linux default
+        }
+    }
+}
+
+
+
+// ============================================================================
+// Dependencies
+// ============================================================================
+
+function checkAvailableFunctionality() {
+    const { spawnSync } = require('child_process');
+    const tools = {
+        'cgeisolate': 'Bacterial Analysis',
+        'cgevirus': 'Virus Analysis',
+        'cgemetagenomics': 'Metagenomics Analysis',
+        'cgeqc': 'Quality Control'
+    };
+    
+    const missingTools = [];
+    
+    for (const [tool, feature] of Object.entries(tools)) {
+        try {
+            const result = spawnSync('which', [tool], { stdio: 'pipe' });
+            if (result.status !== 0) {
+                missingTools.push(`${feature} (${tool})`);
+            }
+        } catch (error) {
+            missingTools.push(`${feature} (${tool})`);
+        }
+    }
+    
+    return missingTools;
+}
 
 // ============================================================================
 // Window Management
@@ -65,7 +121,15 @@ function createWindow() {
 }
 
 // Application lifecycle handlers
-app.whenReady().then(createWindow);
+app.whenReady().then(() => {
+    // Check dependencies first
+    const missingTools = checkAvailableFunctionality();
+    
+    // Save this info so we can access it from the renderer
+    global.missingDependencies = missingTools;
+    
+    createWindow();
+});
 
 app.on('window-all-closed', () => {
     if (process.platform !== 'darwin') {
@@ -162,7 +226,19 @@ function runQC(filePath, experimentName, qcParams = {}, pipelineType = 'bacteria
             return;
         }
 
-        // Build the cgeqc command with just the required parameters
+        // Get the appropriate preset based on pipeline type
+        let presetParams;
+        if (pipelineType === 'bacterial') {
+            presetParams = BACTERIAL_TRIM_PRESETS;
+        } else if (pipelineType === 'viral') {
+            presetParams = VIRAL_TRIM_PRESETS;
+        } else if (pipelineType === 'metagenomic') {
+            presetParams = METAGENOMIC_TRIM_PRESETS;
+        } else {
+            presetParams = BACTERIAL_TRIM_PRESETS; // Default to bacterial if unknown
+        }
+
+        // Build the cgeqc command with the required parameters
         let cgeqcCmd = [
             '-i', filePath,
             '-o', qcDir,
@@ -170,28 +246,25 @@ function runQC(filePath, experimentName, qcParams = {}, pipelineType = 'bacteria
             '--pipeline', pipelineType
         ];
         
-        // Only add parameters if they're actually provided and valid
-        // This prevents passing 'null' as a string
-        if (qcParams.minLength != null && qcParams.minLength !== undefined) 
-            cgeqcCmd.push('--min_length', qcParams.minLength);
-        
-        if (qcParams.maxLength != null && qcParams.maxLength !== undefined) 
-            cgeqcCmd.push('--max_length', qcParams.maxLength);
-        
-        if (qcParams.minPhred != null && qcParams.minPhred !== undefined) 
-            cgeqcCmd.push('--min_phred', qcParams.minPhred);
-        
-        if (qcParams.minInternalPhred != null && qcParams.minInternalPhred !== undefined) 
-            cgeqcCmd.push('--min_internal_phred', qcParams.minInternalPhred);
-        
-        if (qcParams.minAverageQuality != null && qcParams.minAverageQuality !== undefined) 
-            cgeqcCmd.push('--min_average_quality', qcParams.minAverageQuality);
-        
-        if (qcParams.trim5Prime != null && qcParams.trim5Prime !== undefined) 
-            cgeqcCmd.push('--trim_5_prime', qcParams.trim5Prime);
-        
-        if (qcParams.trim3Prime != null && qcParams.trim3Prime !== undefined) 
-            cgeqcCmd.push('--trim_3_prime', qcParams.trim3Prime);
+        // Use provided values if specified, otherwise use presets
+        const paramMap = {
+            minLength: { flag: '--min_length', default: presetParams.min_length },
+            maxLength: { flag: '--max_length', default: presetParams.max_length },
+            minPhred: { flag: '--min_phred', default: presetParams.min_phred },
+            minInternalPhred: { flag: '--min_internal_phred', default: presetParams.min_internal_phred },
+            minAverageQuality: { flag: '--min_average_quality', default: presetParams.min_average_quality },
+            trim5Prime: { flag: '--trim_5_prime', default: presetParams.trim_5_prime },
+            trim3Prime: { flag: '--trim_3_prime', default: presetParams.trim_3_prime }
+        };
+
+        // Add parameters to command - use user value if specified, otherwise use preset
+        Object.entries(paramMap).forEach(([paramName, details]) => {
+            const value = qcParams[paramName] !== undefined && qcParams[paramName] !== null 
+                ? qcParams[paramName] 
+                : details.default;
+            
+            cgeqcCmd.push(details.flag, value.toString());
+        });
 
         // Create a command string for better logging
         let cmdString = 'cgeqc';
@@ -306,14 +379,7 @@ function mergeCondaCommand(scriptName, filePath, experimentName, event, analysis
  */
 function runAnalysisCommand(scriptName, filePath, experimentName, event, analysisType) {
     const homeDirectory = os.homedir();
-    // Determine conda path based on platform
-    let condaPath;
-    if (global.process.platform === 'darwin') {
-        // On macOS, use conda from the PATH
-        condaPath = 'conda';
-    } else {
-        condaPath = `${homeDirectory}/anaconda3/bin/conda`;
-    }
+    const condaPath = getCondaPath();
     
     // Buffer to store output until directory is ready
     let outputBuffer = [];
@@ -342,7 +408,7 @@ function runAnalysisCommand(scriptName, filePath, experimentName, event, analysi
     ];
 
     if (scriptName === 'cgeisolate') {
-        args.push('-i', filePath, '-name', experimentName, '-db_dir', '/var/lib/cge_test/database/cge_db');
+        args.push('-i', filePath, '-name', experimentName, '-db_dir', CONFIG.databaseDirectory);
     } else {
         args.push('-i', filePath, '-name', experimentName);
     }
@@ -409,6 +475,29 @@ function runAnalysisCommand(scriptName, filePath, experimentName, event, analysi
         }
     });
 }
+
+// ============================================================================
+// IPC Handlers - Dependencies
+// ============================================================================
+
+ipcMain.handle('get-missing-dependencies', () => {
+    return global.missingDependencies || [];
+});
+
+// ============================================================================
+// IPC Handlers - QC Presets
+// ============================================================================
+ipcMain.handle('get-bacterial-presets', async () => {
+    return BACTERIAL_TRIM_PRESETS;
+});
+
+ipcMain.handle('get-viral-presets', async () => {
+    return VIRAL_TRIM_PRESETS;
+});
+
+ipcMain.handle('get-metagenomic-presets', async () => {
+    return METAGENOMIC_TRIM_PRESETS;
+});
 
 // ============================================================================
 // IPC Handlers - Results Management
@@ -598,6 +687,7 @@ ipcMain.handle('open-fastq-dialog', async (event) => {
   
   return result.canceled ? null : result.filePaths[0];
 });
+
 
 // ============================================================================
 // Analysis Command Handlers

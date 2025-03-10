@@ -1,5 +1,30 @@
 # Changelog
 
+## [1.6.0] - 2025-03-10
+### Added
+- Cross-Platform Support
+  - Mac OS compatibility alongside Linux
+  - Platform-aware conda path detection
+  - Flexible file path handling
+
+- Flexible Installation Options
+  - Environment variable support for custom installation paths
+  - Support for custom database and results directories via CGE_DB_DIR and CGE_RESULTS_DIR
+  - Enhanced dependency detection without enforcing specific environment names
+
+### Enhanced
+- Dependency Management
+  - Non-blocking dependency check notifications
+  - Improved tool availability checking
+  - Better error messages for missing dependencies
+  - Graceful handling of missing tools
+  - Updated ReadMe to reflect changes to CGELabs
+
+### Technical Improvements
+- Enhanced error handling for cross-platform compatibility
+- Code refactoring for better maintainability
+- Updated build system with cross-platform scripts
+
 ## [1.5.0] - 2025-02-28
 ### Enhanced
 - Quality Control System

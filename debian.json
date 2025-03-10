@@ -1,10 +1,9 @@
 {
   "name": "CGELabs",
   "productName": "CGELabs",
-  "version": "1.0.0",
-  "description": "A description of your app",
-  "categories": ["Utility"],
-  "maintainer": "Malte Hallgren malhal@dtu.dk",
+  "version": "1.6.0",
+  "description": "Bioinformatics analysis platform for bacterial, viral, and metagenomic data",
+  "categories": ["Utility", "Science"],
+  "maintainer": "Frederik Duus Møller <freddu@dtu.dk>",
   "lintianOverrides": ["binary-without-manpage"]
 }
-

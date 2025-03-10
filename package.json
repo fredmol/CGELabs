@@ -1,35 +1,36 @@
 {
   "name": "CGELabs",
-  "version": "1.5.0",
-  "description": "Your app description",
+  "version": "1.6.0",
+  "description": "Bioinformatics analysis platform for bacterial, viral, and metagenomic data",
   "main": "main.js",
   "scripts": {
     "start": "electron .",
     "test": "echo \"Error: no test specified\" && exit 1",
-    "dist": "electron-builder --linux"
+    "dist": "electron-builder"
   },
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/MBHallgren/CGELabs.git"
+    "url": "git+https://github.com/genomicepidemiology/CGELabs.git"
   },
-  "keywords": [],
+  "keywords": ["bioinformatics", "genomics", "metagenomics", "sequencing"],
   "license": "ISC",
   "bugs": {
-    "url": "https://github.com/MBHallgren/CGELabs/issues"
+    "url": "https://github.com/genomicepidemiology/CGELabs/issues"
   },
-  "homepage": "https://github.com/MBHallgren/CGELabs#readme",
+  "homepage": "https://github.com/genomicepidemiology/CGELabs#readme",
   "devDependencies": {
     "electron": "^28.1.0",
     "electron-builder": "^24.9.1",
     "electron-packager": "^12.1.0",
-    "electron-installer-debian": "^3.2.0"
+    "electron-installer-debian": "^3.2.0",
+    "electron-installer-dmg": "^3.0.0"
   },
   "dependencies": {
     "requirejs": "^2.3.6"
   },
   "build": {
     "productName": "CGELabs",
-    "appId": "com.example.cgelabs",
+    "appId": "com.dtu.cgelabs",
     "directories": {
       "output": "build"
     },
@@ -46,9 +47,14 @@
         "Icon": "logo"
       }
     },
+    "mac": {
+      "icon": "logo_256.icns",
+      "target": ["dmg"],
+      "category": "public.app-category.developer-tools"
+    },
     "deb": {
-      "maintainer": "Malte Hallgren",
-      "synopsis": "CGELabs App"
+      "maintainer": "Frederik Duus Møller <freddu@dtu.dk>",
+      "synopsis": "CGELabs Bioinformatics Platform"
     },
     "publish": null
   }

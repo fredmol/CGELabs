@@ -1334,3 +1334,67 @@ body.index-page .main-content {
     color: #6c757d;
     font-size: 0.9rem;
 }
+
+
+
+/* Add at the end of styles.css */
+.notification {
+    position: fixed;
+    bottom: 20px;
+    right: 20px;
+    width: 350px;
+    background-color: #fff3cd;
+    border-left: 4px solid #ffc107;
+    box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+    border-radius: 4px;
+    z-index: 1000;
+    animation: slide-in 0.3s ease-out;
+}
+
+@keyframes slide-in {
+    from { transform: translateX(100%); opacity: 0; }
+    to { transform: translateX(0); opacity: 1; }
+}
+
+.notification-content {
+    padding: 15px;
+}
+
+.notification-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 10px;
+}
+
+.notification-header h3 {
+    margin: 0;
+    color: #856404;
+    font-size: 16px;
+}
+
+.notification-close {
+    background: none;
+    border: none;
+    font-size: 20px;
+    cursor: pointer;
+    color: #856404;
+    padding: 0;
+    margin: 0;
+}
+
+.notification-body {
+    color: #856404;
+    font-size: 14px;
+}
+
+.notification-body ul {
+    margin: 10px 0;
+    padding-left: 20px;
+}
+
+.notification-note {
+    font-style: italic;
+    margin-top: 10px;
+    font-size: 13px;
+}

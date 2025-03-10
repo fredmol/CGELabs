@@ -62,40 +62,44 @@
                         <label for="enableMetagenomicsQC">Run QC before analysis (recommended)</label>
                         <button id="metaQcSettingsToggle" class="toggle-button">Advanced QC Settings</button>
                     </div>
+
                     <div id="metaQcSettingsPanel" class="settings-panel" style="display:none;">
                         <h4>QC Parameters</h4>
                         <div class="parameter-grid">
                             <div class="parameter-item">
                                 <label for="metaMinLength">Min Length:</label>
-                                <input type="number" id="metaMinLength" placeholder="16">
+                                <input type="number" id="metaMinLength" placeholder="">
                             </div>
                             <div class="parameter-item">
                                 <label for="metaMaxLength">Max Length:</label>
-                                <input type="number" id="metaMaxLength" placeholder="2147483647">
+                                <input type="number" id="metaMaxLength" placeholder="">
                             </div>
                             <div class="parameter-item">
                                 <label for="metaMinPhred">Min Phred:</label>
-                                <input type="number" id="metaMinPhred" placeholder="20">
+                                <input type="number" id="metaMinPhred" placeholder="">
                             </div>
                             <div class="parameter-item">
                                 <label for="metaMinInternalPhred">Min Internal Phred:</label>
-                                <input type="number" id="metaMinInternalPhred" placeholder="0">
+                                <input type="number" id="metaMinInternalPhred" placeholder="">
                             </div>
                             <div class="parameter-item">
                                 <label for="metaMinAverageQuality">Min Average Quality:</label>
-                                <input type="number" id="metaMinAverageQuality" placeholder="10">
+                                <input type="number" id="metaMinAverageQuality" placeholder="">
                             </div>
                             <div class="parameter-item">
                                 <label for="metaTrim5Prime">Trim 5' End:</label>
-                                <input type="number" id="metaTrim5Prime" placeholder="0">
+                                <input type="number" id="metaTrim5Prime" placeholder="">
                             </div>
                             <div class="parameter-item">
                                 <label for="metaTrim3Prime">Trim 3' End:</label>
-                                <input type="number" id="metaTrim3Prime" placeholder="0">
+                                <input type="number" id="metaTrim3Prime" placeholder="">
                             </div>
                         </div>
                         <p class="settings-note">Leave empty to use default values. Values shown are the defaults.</p>
                     </div>
+
+
+                    
                 </div>
 
                 <div class="button-row">
@@ -141,4 +145,31 @@
         </div>
 
         <!-- Results card (initially hidden) -->
-        <div id="resultsCard" class="content-card" style="display:
+        <div id="resultsCard" class="content-card" style="display:none;">
+            <h2 class="card-title">Analysis Results</h2>
+            <div class="card-content" id="resultButtons">
+                <div class="result-buttons">
+                    <button id="openResults" class="result-button">
+                        <i class="fas fa-folder-open"></i>
+                        <span>Open Results Folder</span>
+                    </button>
+                    <button id="openPdf" class="result-button">
+                        <i class="fas fa-file-pdf"></i>
+                        <span>View PDF Report</span>
+                    </button>
+                    <button id="openText" class="result-button">
+                        <i class="fas fa-file-alt"></i>
+                        <span>View Text Report</span>
+                    </button>
+                    <button id="openQcPdf" class="result-button">
+                        <i class="fas fa-microscope"></i>
+                        <span>View QC Report</span>
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="renderer.js"></script>
+</body>
+</html>

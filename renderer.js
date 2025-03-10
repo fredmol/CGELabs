@@ -608,6 +608,18 @@ function setupPdfViewer() {
 }
 
 /**
+ * Initializes QC field with default value from presets
+ * @param {string} id - The HTML element ID
+ * @param {any} defaultValue - The default value to set as placeholder
+ */
+function initQcField(id, defaultValue) {
+    const field = document.getElementById(id);
+    if (field) {
+        field.placeholder = defaultValue.toString();
+    }
+}
+
+/**
  * Sets up the bacteria analysis page
  */
 function setupBacteriaPage() {
@@ -636,25 +648,24 @@ function setupBacteriaPage() {
     // Setup QC settings toggle
     setupQcSettingsToggle('qcSettingsToggle', 'qcSettingsPanel');
 
-    // Ensure QC fields are initialized with defaults
-    const initQcField = (id, defaultValue) => {
-        const field = document.getElementById(id);
-        if (field) {
-            field.placeholder = defaultValue.toString();
-        }
-    };
-
-    // Initialize QC fields with bacterial defaults
-    initQcField('minLength', 16);
-    initQcField('maxLength', 2147483647);
-    initQcField('minPhred', 20);
-    initQcField('minInternalPhred', 0);
-    initQcField('minAverageQuality', 10);
-    initQcField('trim5Prime', 0);
-    initQcField('trim3Prime', 0);
+    // Load the preset values from the main process
+    ipcRenderer.invoke('get-bacterial-presets').then(presets => {
+        // Initialize QC fields with bacterial presets
+        initQcField('minLength', presets.min_length);
+        initQcField('maxLength', presets.max_length);
+        initQcField('minPhred', presets.min_phred);
+        initQcField('minInternalPhred', presets.min_internal_phred);
+        initQcField('minAverageQuality', presets.min_average_quality);
+        initQcField('trim5Prime', presets.trim_5_prime);
+        initQcField('trim3Prime', presets.trim_3_prime);
+    }).catch(error => {
+        console.error('Failed to get bacterial presets:', error);
+        // Don't set fallback values, as they might not match the actual presets
+    });
 
     // Setup collapsible console
     setupCollapsibleConsole('consoleHeader', 'consoleBody', 'consoleToggle', 'consoleStatus', 'output');
+
 
     // Add validation for numeric fields
     const qcNumericFields = [
@@ -930,6 +941,21 @@ function setupVirusPage() {
     // Setup QC settings toggle
     setupQcSettingsToggle('virusQcSettingsToggle', 'virusQcSettingsPanel');
 
+    // Load the preset values from the main process
+    ipcRenderer.invoke('get-viral-presets').then(presets => {
+        // Initialize QC fields with viral presets
+        initQcField('virusMinLength', presets.min_length);
+        initQcField('virusMaxLength', presets.max_length);
+        initQcField('virusMinPhred', presets.min_phred);
+        initQcField('virusMinInternalPhred', presets.min_internal_phred);
+        initQcField('virusMinAverageQuality', presets.min_average_quality);
+        initQcField('virusTrim5Prime', presets.trim_5_prime);
+        initQcField('virusTrim3Prime', presets.trim_3_prime);
+    }).catch(error => {
+        console.error('Failed to get viral presets:', error);
+        // Don't set fallback values, as they might not match the actual presets
+    });
+
     // Check for existing folder on experiment name change
     if (experimentNameInput) {
         experimentNameInput.addEventListener('input', () => {
@@ -1178,6 +1204,21 @@ function setupMetagenomicsPage() {
 
     // Setup QC settings toggle
     setupQcSettingsToggle('metaQcSettingsToggle', 'metaQcSettingsPanel');
+
+    // Load the preset values from the main process
+    ipcRenderer.invoke('get-metagenomic-presets').then(presets => {
+        // Initialize QC fields with metagenomic presets
+        initQcField('metaMinLength', presets.min_length);
+        initQcField('metaMaxLength', presets.max_length);
+        initQcField('metaMinPhred', presets.min_phred);
+        initQcField('metaMinInternalPhred', presets.min_internal_phred);
+        initQcField('metaMinAverageQuality', presets.min_average_quality);
+        initQcField('metaTrim5Prime', presets.trim_5_prime);
+        initQcField('metaTrim3Prime', presets.trim_3_prime);
+    }).catch(error => {
+        console.error('Failed to get metagenomic presets:', error);
+        // Don't set fallback values, as they might not match the actual presets
+    });
 
     // Check for existing folder on experiment name change
     if (experimentNameInput) {
@@ -1704,5 +1745,42 @@ document.addEventListener('DOMContentLoaded', () => {
             }
         });
     });
+
+
+    // Check for missing dependencies at startup (only on main page)
+    if (window.location.pathname === '/' || window.location.pathname.endsWith('/index.html')) {
+        // We need to wait a bit to ensure the preload script has initialized
+        setTimeout(() => {
+            if (window.electronAPI && window.electronAPI.getMissingDependencies) {
+                window.electronAPI.getMissingDependencies().then(missingTools => {
+                    if (missingTools && missingTools.length > 0) {
+                        const notification = document.getElementById('dependency-notification');
+                        const toolsList = document.getElementById('missing-tools-list');
+                        const closeButton = document.getElementById('close-notification');
+                        
+                        // Clear any existing items
+                        toolsList.innerHTML = '';
+                        
+                        // Populate the list
+                        missingTools.forEach(tool => {
+                            const li = document.createElement('li');
+                            li.textContent = tool;
+                            toolsList.appendChild(li);
+                        });
+                        
+                        // Show the notification
+                        if (notification) notification.style.display = 'block';
+                        
+                        // Add close button handler
+                        if (closeButton) {
+                            closeButton.addEventListener('click', () => {
+                                notification.style.display = 'none';
+                            });
+                        }
+                    }
+                }).catch(err => console.error('Error getting dependencies:', err));
+            }
+        }, 1000);
+    }
 
 });
